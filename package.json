@@ -1,0 +1,26 @@
+{
+  "name": "cloudscraper",
+  "version": "0.0.1",
+  "description": "Bypasses cloudflare's anti-ddos page",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codemanki/cloudscraper.git"
+  },
+  "keywords": [
+    "cloudflare",
+    "ddos",
+    "scrape",
+    "webscraper"
+  ],
+  "author": "Oleksii Sribnyi",
+  "license": "MIT",
+  "homepage": "https://github.com/codemanki/cloudscraper",
+  "dependencies": {
+    "request": "^2.49.0",
+    "tough-cookie": "^0.12.1"
+  }
+}
