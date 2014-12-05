@@ -10,7 +10,7 @@ module.exports = function(grunt) {
           reporter: 'spec',
           quiet: false,
           clearRequireCache: false,
-          require: './specs/chai_helper'
+          require: './specs/chai'
         },
         src: ['specs/**/*.js']
       }
