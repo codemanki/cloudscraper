@@ -22,5 +22,12 @@
   "dependencies": {
     "request": "^2.49.0",
     "tough-cookie": "^0.12.1"
+  },
+  "devDependencies": {
+    "chai": "^1.10.0",
+    "grunt": "^0.4.5",
+    "grunt-mocha-test": "^0.12.4",
+    "mocha": "^2.0.1",
+    "sinon": "^1.12.1"
   }
 }
