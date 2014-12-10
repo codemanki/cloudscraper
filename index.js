@@ -25,8 +25,7 @@ cloudscraper.get = function(url, callback, headers) {
 
 
 function performRequest(url, callback, headers) {
-  request({url: url, header: headers}, function(error, response, body) {
-
+  request.get({url: url, headers: headers}, function(error, response, body) {
     // Error...
     if(error) {
       return callback(error, body, response);
@@ -81,7 +80,7 @@ function solveChallenge(response, body, callback) {
   headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
 
   // Make request with answer
-  request({
+  request.get({
     url: answerUrl,
     qs: answerResponse,
     headers: headers

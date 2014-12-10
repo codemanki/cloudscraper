@@ -1,7 +1,7 @@
 var chai = require('chai'),
     sinon = require('sinon');
 
-chai.should();
+chai.expect();
 
 chai.config.includeStack = true;
 
