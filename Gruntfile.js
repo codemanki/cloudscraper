@@ -9,7 +9,6 @@ module.exports = function(grunt) {
           globals: ['expect', 'sinon'],
           reporter: 'spec',
           quiet: false,
-          clearRequireCache: false,
           require: './specs/chai'
         },
         src: ['specs/**/*.js']

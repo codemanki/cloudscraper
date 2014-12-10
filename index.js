@@ -26,9 +26,10 @@ cloudscraper.get = function(url, callback, headers) {
 
 function performRequest(url, callback, headers) {
   request.get({url: url, headers: headers}, function(error, response, body) {
+
     // Error...
     if(error) {
-      return callback(error, body, response);
+      return callback({errorType: 0, error: error}, body, response);
     }
 
     // If body contains specified string, solve challenge
@@ -73,7 +74,6 @@ function solveChallenge(response, body, callback) {
   } catch (err) {
     throwErrorWithDetails('Error occurred during evaluation: ' +  err.message);
   }
-
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
 

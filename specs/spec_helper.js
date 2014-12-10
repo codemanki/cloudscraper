@@ -1,5 +1,6 @@
 var fs = require('fs'),
-    urlLib = require('url');
+    urlLib = require('url'),
+    path = require('path');
 
 module.exports = {
   getFixture: function(fileName) {
@@ -17,5 +18,12 @@ module.exports = {
       body: body,
       request: parsedUri //actually this is more compilcated object, but library uses only uri parts.
     };
+  },
+  // Terrible hack. But because of request library API, it is impossible to normally stub it. That is why cloudscraper's index.js is removed from cache each time
+  dropCache: function() {
+    var pathToLib = path.normalize(__dirname + '/../index.js');
+    if (require.cache[pathToLib]) {
+      delete require.cache[pathToLib];
+    }
   }
 };

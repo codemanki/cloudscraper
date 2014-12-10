@@ -1,7 +1,6 @@
 var helper       = require('../spec_helper'),
     request      = require('request');
 
-
 describe('Cloudscraper', function() {
   var sandbox,
       url             = 'http://example-site.dev/path/',
@@ -13,6 +12,10 @@ describe('Cloudscraper', function() {
       requestDefault  = request.defaults({jar: true}),
       cloudscraper;
 
+  before(function() {
+    helper.dropCache();
+  });
+
   beforeEach(function () {
     sandbox = sinon.sandbox.create();
     sandbox.stub(request, 'defaults').returns(requestDefault);
@@ -23,7 +26,7 @@ describe('Cloudscraper', function() {
     sandbox.restore();
   });
 
-  it('should return requested page, if cloudscraper is disabled for page', function(done) {
+  it('should return requested page, if cloudflare is disabled for page', function(done) {
     var response = { statusCode: 200 };
 
     // Stub first call, which request makes to page. It should return requested page
