@@ -71,4 +71,17 @@ describe('Cloudscraper', function() {
     }, headers);
   });
 
+  it('should return error if challenge page failed to be parsed', function(done){
+    var response = helper.fakeResponseObject(200, headers, invalidChallenge, url);
+
+    sandbox.stub(requestDefault, 'get')
+           .withArgs({url: url, headers: headers})
+           .callsArgWith(1, null, response, invalidChallenge);
+
+    cloudscraper.get(url, function(error, body) {
+      expect(error.errorType).to.be.eql(3); // errorType 3, means parsing failed
+      expect(body).to.be.eql(invalidChallenge);
+      done();
+    }, headers);
+  });
 });

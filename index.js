@@ -75,7 +75,7 @@ function solveChallenge(response, body, callback) {
       headers = response.headers;
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'});
+    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
   }
 
   jsChlVc = challenge[1];
@@ -83,7 +83,7 @@ function solveChallenge(response, body, callback) {
   challenge = body.match(/setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'});
+    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
   }
 
   challenge = challenge[1];
@@ -95,7 +95,7 @@ function solveChallenge(response, body, callback) {
   try {
     answerResponse = { 'jschl_vc': jsChlVc, 'jschl_answer': (eval(challenge) + response.request.host.length) };
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message});
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
