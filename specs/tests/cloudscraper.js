@@ -45,7 +45,7 @@ describe('Cloudscraper', function() {
 
 
   it('should resolve challenge and then return page', function(done) {
-    var response = helper.fakeResponseObject(200, headers, jsChallengePage, url),
+    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
         stubbed;
 
     // Cloudflare is enabled for site. It returns a page with js challenge

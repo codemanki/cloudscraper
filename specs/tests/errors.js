@@ -43,7 +43,7 @@ describe('Cloudscraper', function() {
   });
 
   it('should return error if captcha is served by cloudflare', function(done){
-    var response = { statusCode: 200 };
+    var response = { statusCode: 503 };
 
     sandbox.stub(requestDefault, 'get')
            .withArgs({url: url, headers: headers})
@@ -58,7 +58,7 @@ describe('Cloudscraper', function() {
 
   it('should return error if cloudflare returned some inner error', function(done){
     //https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
-    var response = { statusCode: 200 };
+    var response = { statusCode: 500 };
 
     sandbox.stub(requestDefault, 'get')
            .withArgs({url: url, headers: headers})
