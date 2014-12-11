@@ -26,10 +26,10 @@ cloudscraper.get = function(url, callback, headers) {
 
 function performRequest(url, callback, headers) {
   request.get({url: url, headers: headers}, function(error, response, body) {
+    var validationError;
 
-    // Error...
-    if(error) {
-      return callback({errorType: 0, error: error}, body, response);
+    if (validationError = checkForErrors(error, body)) {
+      return callback(validationError, body, response);
     }
 
     // If body contains specified string, solve challenge
@@ -42,6 +42,29 @@ function performRequest(url, callback, headers) {
   });
 }
 
+function checkForErrors(error, body) {
+  var match;
+
+  // Pure request error (bad connection, wrong url, etc)
+  if(error) {
+    return { errorType: 0, error: error };
+  }
+
+  // Finding captcha
+  if (body.indexOf('why_captcha') !== -1 || /recaptcha/i.test(body)) {
+    return { errorType: 1 };
+  }
+
+  // trying to find '<span class="cf-error-code">1006</span>'
+  match = body.match(/<\w+\s+class="cf-error-code">(.*)<\/\w+>/i);
+
+  if (match) {
+    return { errorType: 2, error: parseInt(match[1]) };
+  }
+
+  return false;
+}
+
 
 function solveChallenge(response, body, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
@@ -52,7 +75,7 @@ function solveChallenge(response, body, callback) {
       headers = response.headers;
 
   if (!challenge) {
-    throwErrorWithDetails('I cant extract challengeId (jschl_vc) from page');
+    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'});
   }
 
   jsChlVc = challenge[1];
@@ -60,7 +83,7 @@ function solveChallenge(response, body, callback) {
   challenge = body.match(/setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    throwErrorWithDetails('I cant extract method from setTimeOut wrapper');
+    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'});
   }
 
   challenge = challenge[1];
@@ -72,7 +95,7 @@ function solveChallenge(response, body, callback) {
   try {
     answerResponse = { 'jschl_vc': jsChlVc, 'jschl_answer': (eval(challenge) + response.request.host.length) };
   } catch (err) {
-    throwErrorWithDetails('Error occurred during evaluation: ' +  err.message);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message});
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
@@ -87,11 +110,6 @@ function solveChallenge(response, body, callback) {
   }, function(error, response, body) {
     callback(error, body, response);
   });
-}
-
-
-function throwErrorWithDetails(text) {
-  throw new Error('Something is wrong with CloudFlare page. ' + text);
 }
 
 module.exports = cloudscraper;
