@@ -80,7 +80,7 @@ function solveChallenge(response, body, callback) {
 
   jsChlVc = challenge[1];
 
-  challenge = body.match(/setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
+  challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);

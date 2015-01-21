@@ -37,9 +37,9 @@ cloudscraper.get('http://website.com/', function(error, body, response) {
   if (error) {
     console.log('Error occurred');
   } else {
-    console.log(body);
+    console.log(body, response);
   }
-})
+});
 ```
 
 
