@@ -33,7 +33,7 @@ describe('Cloudscraper', function() {
            .withArgs({url: url, headers: headers})
            .callsArgWith(1, null, response, requestedPage);
 
-    cloudscraper.get(url, function(error, body, response) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.null();
       expect(body).to.be.equal(requestedPage);
       expect(response).to.be.equal(response);

@@ -38,7 +38,7 @@ function performRequest(url, callback, headers) {
     }
 
     // All is good
-    callback(error, body, response);
+    callback(error, response, body);
   });
 }
 
