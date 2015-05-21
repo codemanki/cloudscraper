@@ -19,32 +19,34 @@ describe('Cloudscraper', function() {
     sandbox = sinon.sandbox.create();
     sandbox.stub(request, 'defaults').returns(requestDefault);
     cloudscraper = require('../../index');
+    // since cloudflare requires timeout, the module relies on setTimeout. It should be proprely stubbed to avoid ut running for too long
+    this.clock = sinon.useFakeTimers();
   });
 
   afterEach(function () {
     sandbox.restore();
+    this.clock.restore();
   });
 
   it('should return requested page, if cloudflare is disabled for page', function(done) {
-    var response = { statusCode: 200 };
+    var exprectedResponse = { statusCode: 200 };
 
     // Stub first call, which request makes to page. It should return requested page
     sandbox.stub(requestDefault, 'get')
            .withArgs({url: url, headers: headers})
-           .callsArgWith(1, null, response, requestedPage);
+           .callsArgWith(1, null, exprectedResponse, requestedPage);
 
-    cloudscraper.get(url, function(error, response, body) {
+    cloudscraper.get(url, function(error, body, response) {
       expect(error).to.be.null();
       expect(body).to.be.equal(requestedPage);
-      expect(response).to.be.equal(response);
+      expect(response).to.be.equal(exprectedResponse);
       done();
     }, headers);
 
   });
 
-
-  it('should resolve challenge and then return page', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge.html'),
+  it('should resolve challenge (version as on 21.05.2015) and then return page', function(done) {
+    var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html'),
         response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
         stubbed;
 
@@ -58,8 +60,9 @@ describe('Cloudscraper', function() {
     stubbed.withArgs({
       url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
-        'jschl_vc': '989bdb1d5d5c427471cf8051f4d2daff',
-        'jschl_answer': 55072 + 'example-site.dev'.length // 55072 is a answer to cloudflares js challenge in this particular case
+        'jschl_vc': '89cdff5eaa25923e0f26e29e5195dce9',
+        'jschl_answer': 633 + 'example-site.dev'.length, // 633 is a answer to cloudflares js challenge in this particular case
+        'pass': '1432194174.495-8TSfc235EQ'
       },
       headers: {
         'User-Agent': 'Chrome',
@@ -74,39 +77,7 @@ describe('Cloudscraper', function() {
       expect(response).to.be.equal(response);
       done();
     }, headers);
-  });
 
-  //TODO: Join this test case with above one
-  it('should resolve challenge (version as on 21.01.2015) and then return page', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_21_01_2015.html'),
-        response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
-        stubbed;
-
-    // Cloudflare is enabled for site. It returns a page with js challenge
-    stubbed = sandbox.stub(requestDefault, 'get')
-                .withArgs({url: url, headers: headers})
-                .callsArgWith(1, null, response, jsChallengePage);
-
-    // Second call to request.get will have challenge solution
-    // It should contain url, answer, headers with Referer
-    stubbed.withArgs({
-      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
-      qs: {
-        'jschl_vc': 'abecf8b72ae8f1ac95a222c459bf01e3',
-        'jschl_answer': 912 + 'example-site.dev'.length // 912 is a answer to cloudflares js challenge in this particular case
-      },
-      headers: {
-        'User-Agent': 'Chrome',
-        'Referer': 'http://example-site.dev/path/'
-      }
-    })
-    .callsArgWith(1, null, response, requestedPage);
-
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error).to.be.null();
-      expect(body).to.be.equal(requestedPage);
-      expect(response).to.be.equal(response);
-      done();
-    }, headers);
+    this.clock.tick(7000); // tick the timeout
   });
 });

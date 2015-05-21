@@ -21,10 +21,13 @@ describe('Cloudscraper', function() {
     sandbox = sinon.sandbox.create();
     sandbox.stub(request, 'defaults').returns(requestDefault);
     cloudscraper = require('../../index');
+    // since cloudflare requires timeout, the module relies on setTimeout. It should be proprely stubbed to avoid ut running for too long
+    this.clock = sinon.useFakeTimers();
   });
 
   afterEach(function () {
     sandbox.restore();
+    this.clock.restore();
   });
 
   it('should return error if it was thrown by request', function(done) {
@@ -71,9 +74,8 @@ describe('Cloudscraper', function() {
     }, headers);
   });
 
-  it('should return error if challenge page failed to be parsed', function(done){
+  it('should return error if challenge page failed to be parsed', function(done) {
     var response = helper.fakeResponseObject(200, headers, invalidChallenge, url);
-
     sandbox.stub(requestDefault, 'get')
            .withArgs({url: url, headers: headers})
            .callsArgWith(1, null, response, invalidChallenge);
@@ -83,5 +85,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.eql(invalidChallenge);
       done();
     }, headers);
+
+    this.clock.tick(7000); // tick the timeout
   });
 });

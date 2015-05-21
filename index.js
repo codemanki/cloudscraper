@@ -1,5 +1,6 @@
 var request      = require('request').defaults({jar: true}), // Cookies should be enabled
     UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+    Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
     cloudscraper = {};
 
 /**
@@ -34,11 +35,13 @@ function performRequest(url, callback, headers) {
 
     // If body contains specified string, solve challenge
     if (body.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
-      return solveChallenge(response, body, callback);
+      setTimeout(function() {
+        return solveChallenge(response, body, headers, callback);
+      }, Timeout);
+    } else {
+      // All is good
+      callback(error, body, response);
     }
-
-    // All is good
-    callback(error, response, body);
   });
 }
 
@@ -66,13 +69,13 @@ function checkForErrors(error, body) {
 }
 
 
-function solveChallenge(response, body, callback) {
+function solveChallenge(response, body, requestHeaders, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
       jsChlVc,
       answerResponse,
       answerUrl,
       host = response.request.host,
-      headers = response.headers;
+      headers = requestHeaders;
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
@@ -86,6 +89,8 @@ function solveChallenge(response, body, callback) {
     return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
   }
 
+  challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
+
   challenge = challenge[1];
 
   challenge = challenge.replace(/a\.value =(.+?) \+ .+?;/i, '$1');
@@ -93,7 +98,11 @@ function solveChallenge(response, body, callback) {
   challenge = challenge.replace(/\s{3,}[a-z](?: = |\.).+/g, '');
 
   try {
-    answerResponse = { 'jschl_vc': jsChlVc, 'jschl_answer': (eval(challenge) + response.request.host.length) };
+    answerResponse = {
+      'jschl_vc': jsChlVc,
+      'jschl_answer': (eval(challenge) + response.request.host.length),
+      'pass': challenge_pass
+    };
   } catch (err) {
     return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
   }
