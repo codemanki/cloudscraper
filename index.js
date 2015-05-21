@@ -1,5 +1,6 @@
 var request      = require('request').defaults({jar: true}), // Cookies should be enabled
     UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+    Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
     cloudscraper = {};
 
 /**
@@ -34,10 +35,9 @@ function performRequest(url, callback, headers) {
 
     // If body contains specified string, solve challenge
     if (body.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
-      // Cloudflare requires a delay of 5 seconds.
       setTimeout(function() {
         return solveChallenge(response, body, headers, callback);
-      }, 5000);
+      }, Timeout);
     } else {
       // All is good
       callback(error, body, response);
@@ -84,11 +84,12 @@ function solveChallenge(response, body, requestHeaders, callback) {
   jsChlVc = challenge[1];
 
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
-  challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
   }
+
+  challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
 
   challenge = challenge[1];
 

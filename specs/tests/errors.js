@@ -72,6 +72,7 @@ describe('Cloudscraper', function() {
   });
 
   it('should return error if challenge page failed to be parsed', function(done){
+    this.timeout(6000);
     var response = helper.fakeResponseObject(200, headers, invalidChallenge, url);
 
     sandbox.stub(requestDefault, 'get')
