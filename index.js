@@ -34,11 +34,14 @@ function performRequest(url, callback, headers) {
 
     // If body contains specified string, solve challenge
     if (body.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
-      return solveChallenge(response, body, callback);
+      // Cloudflare requires a delay of 5 seconds.
+      setTimeout(function() {
+        return solveChallenge(response, body, headers, callback);
+      }, 5000);
+    } else {
+      // All is good
+      callback(error, body, response);
     }
-
-    // All is good
-    callback(error, body, response);
   });
 }
 
@@ -66,13 +69,13 @@ function checkForErrors(error, body) {
 }
 
 
-function solveChallenge(response, body, callback) {
+function solveChallenge(response, body, requestHeaders, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
       jsChlVc,
       answerResponse,
       answerUrl,
       host = response.request.host,
-      headers = response.headers;
+      headers = requestHeaders;
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
@@ -81,6 +84,7 @@ function solveChallenge(response, body, callback) {
   jsChlVc = challenge[1];
 
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
+  challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
@@ -93,7 +97,11 @@ function solveChallenge(response, body, callback) {
   challenge = challenge.replace(/\s{3,}[a-z](?: = |\.).+/g, '');
 
   try {
-    answerResponse = { 'jschl_vc': jsChlVc, 'jschl_answer': (eval(challenge) + response.request.host.length) };
+    answerResponse = {
+      'jschl_vc': jsChlVc,
+      'jschl_answer': (eval(challenge) + response.request.host.length),
+      'pass': challenge_pass
+    };
   } catch (err) {
     return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
   }
