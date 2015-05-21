@@ -76,7 +76,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [ ] Support page with simple redirects
  - [x] Add proper testing
 
-##Kudos to contributors
+## Kudos to contributors
  - [roflmuffin](https://github.com/roflmuffin)
 
 ## Dependencies
