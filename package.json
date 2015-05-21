@@ -1,6 +1,6 @@
 {
   "name": "cloudscraper",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/codemanki/cloudscraper.git"
+  },
+  "publishConfig": {
+    "registry": "http://registry.npmjs.org"
   },
   "keywords": [
     "cloudflare",
