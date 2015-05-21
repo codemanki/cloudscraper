@@ -66,6 +66,9 @@ Let me know, by opening [issue](https://github.com/codemanki/cloudscraper/issues
 
 CloudScraper uses [Request](https://github.com/request/request) to perform requests.
 
+WAT
+===========
+Current cloudflare implementation requires browser to respect the timeout of 5 seconds and cloudscraper mimics this behaviour. So everytime you call `cloudscraper.get` you should expect it to return result after min 6 seconds.
 
 ## TODO
  - [x] Check for recaptcha
@@ -73,6 +76,10 @@ CloudScraper uses [Request](https://github.com/request/request) to perform reque
  - [ ] Support page with simple redirects
  - [x] Add proper testing
 
+##Kudos to contributors
+ - [roflmuffin](https://github.com/roflmuffin)
+
 ## Dependencies
 * request@2.49.0 https://github.com/request/request
 * tough-cookie@0.12.1 https://github.com/goinstant/tough-cookie
+
