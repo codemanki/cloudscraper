@@ -19,21 +19,20 @@ cloudscraper.get = function(url, callback, headers) {
 
 cloudscraper.post = function(url, body, callback, headers) {
   var data = '';
+
   if(typeof body === 'string') {
     data = body;
   } else {
     for(key in body) {
-      data += key+'='+body[key]+'&';
+      data += key + '=' + body[key] + '&';
     }
+
     data = data.substring(0, data.length-1);
   }
+
   headers = headers || {};
-  if(!headers['Content-Type']) {
-    headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
-  }
-  if(!headers['Content-Length']) {
-    headers['Content-Length'] = data.length;
-  }
+  headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded; charset=UTF-8';
+  headers['Content-Length'] = headers['Content-Length'] || data.length;
 
   performRequest({
     method: 'POST',
