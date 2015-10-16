@@ -33,7 +33,7 @@ Usage
 ```javascript
 var cloudscraper = require('cloudscraper');
 
-cloudscraper.get('http://website.com/', function(error, body, response) {
+cloudscraper.get('http://website.com/', function(error, response, body) {
   if (error) {
     console.log('Error occurred');
   } else {

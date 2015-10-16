@@ -29,7 +29,7 @@ cloudscraper.post = function(url, body, callback, headers) {
   }
   headers = headers || {};
   if(!headers['Content-Type']) {
-    headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';    
+    headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
   }
   if(!headers['Content-Length']) {
     headers['Content-Length'] = data.length;
@@ -50,15 +50,12 @@ cloudscraper.request = function(options, callback) {
 function performRequest(options, callback) {
   options = options || {};
   options.headers = options.headers || {};
-  
+
   if (!options.url || !callback) {
     throw new Error('To perform request, define both url and callback');
   }
 
-  //If no ua is passed, add one
-  if (!options.headers['User-Agent']) {
-    options.headers['User-Agent'] = UserAgent;
-  }
+  options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
 
   request(options, function(error, response, body) {
     var validationError;
@@ -74,7 +71,7 @@ function performRequest(options, callback) {
       }, Timeout);
     } else {
       // All is good
-      callback(error, body, response);
+      callback(error, response, body);
     }
   });
 }
@@ -145,18 +142,16 @@ function solveChallenge(response, body, options, callback) {
   options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
   options.url = answerUrl;
   options.qs = answerResponse;
-  
+
   // Make request with answer
   request(options, function(error, response, body) {
     if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
                                       //by default, but for some reason it's not
       options.url = response.headers.location;
       delete options.qs;
-      request(options, function(error, response, body) {
-        callback(error, body, response);
-      });
+      request(options, callback);
     } else {
-      callback(error, body, response);
+      callback(error, response, body);
     }
   });
 }
