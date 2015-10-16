@@ -48,8 +48,10 @@ cloudscraper.request = function(options, callback) {
 }
 
 function performRequest(options, callback) {
+  var method;
   options = options || {};
   options.headers = options.headers || {};
+  makeRequest = requestMethod(options.method);
 
   if (!options.url || !callback) {
     throw new Error('To perform request, define both url and callback');
@@ -57,7 +59,7 @@ function performRequest(options, callback) {
 
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
 
-  request(options, function(error, response, body) {
+  makeRequest(options, function(error, response, body) {
     var validationError;
 
     if (validationError = checkForErrors(error, body)) {
@@ -102,10 +104,11 @@ function checkForErrors(error, body) {
 
 function solveChallenge(response, body, options, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
+      host = response.request.host,
+      makeRequest = requestMethod(options.method),
       jsChlVc,
       answerResponse,
-      answerUrl,
-      host = response.request.host;
+      answerUrl;
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
@@ -144,7 +147,7 @@ function solveChallenge(response, body, options, callback) {
   options.qs = answerResponse;
 
   // Make request with answer
-  request(options, function(error, response, body) {
+  makeRequest(options, function(error, response, body) {
     if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
                                       //by default, but for some reason it's not
       options.url = response.headers.location;
@@ -154,6 +157,14 @@ function solveChallenge(response, body, options, callback) {
       callback(error, response, body);
     }
   });
+}
+
+// Workaround for better testing. Request has pretty poor API
+function requestMethod(method) {
+  // For now only GET and POST are supported
+  method = method.toUpperCase();
+
+  return method === 'POST' ? request.post : request.get;
 }
 
 module.exports = cloudscraper;

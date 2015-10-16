@@ -33,10 +33,10 @@ describe('Cloudscraper', function() {
 
     // Stub first call, which request makes to page. It should return requested page
     sandbox.stub(requestDefault, 'get')
-           .withArgs({url: url, headers: headers})
+           .withArgs({method: 'GET', url: url, headers: headers})
            .callsArgWith(1, null, exprectedResponse, requestedPage);
 
-    cloudscraper.get(url, function(error, body, response) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.null();
       expect(body).to.be.equal(requestedPage);
       expect(response).to.be.equal(exprectedResponse);
@@ -52,12 +52,13 @@ describe('Cloudscraper', function() {
 
     // Cloudflare is enabled for site. It returns a page with js challenge
     stubbed = sandbox.stub(requestDefault, 'get')
-                .withArgs({url: url, headers: headers})
+                .withArgs({method: 'GET', url: url, headers: headers})
                 .callsArgWith(1, null, response, jsChallengePage);
 
     // Second call to request.get will have challenge solution
     // It should contain url, answer, headers with Referer
     stubbed.withArgs({
+      method: 'GET',
       url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
         'jschl_vc': '89cdff5eaa25923e0f26e29e5195dce9',
@@ -71,7 +72,7 @@ describe('Cloudscraper', function() {
     })
     .callsArgWith(1, null, response, requestedPage);
 
-    cloudscraper.get(url, function(error, body, response) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.null();
       expect(body).to.be.equal(requestedPage);
       expect(response).to.be.equal(response);
