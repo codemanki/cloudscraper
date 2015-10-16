@@ -6,7 +6,7 @@ var request      = require('request').defaults({jar: true}), // Cookies should b
 /**
  * Performs get request to url with headers.
  * @param  {String}    url
- * @param  {Function}  callback    function(error, body, response) {}
+ * @param  {Function}  callback    function(error, response, body) {}
  * @param  {[Object}   headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
  */
 cloudscraper.get = function(url, callback, headers) {
@@ -17,17 +17,23 @@ cloudscraper.get = function(url, callback, headers) {
   }, callback);
 };
 
+/**
+ * Performs post request to url with headers.
+ * @param  {String}        url
+ * @param  {String|Object} body        Will be passed as form data
+ * @param  {Function}      callback    function(error, response, body) {}
+ * @param  {[Object}       headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
+ */
 cloudscraper.post = function(url, body, callback, headers) {
-  var data = '';
+  var data = '',
+      bodyType = Object.prototype.toString.call(body);
 
-  if(typeof body === 'string') {
+  if(bodyType === '[object String]') {
     data = body;
-  } else {
-    for(key in body) {
-      data += key + '=' + body[key] + '&';
-    }
-
-    data = data.substring(0, data.length-1);
+  } else if (bodyType === '[object Object]') {
+    data = Object.keys(body).map(function(key) {
+      return key + '=' + body[key];
+    }).join('&');
   }
 
   headers = headers || {};
