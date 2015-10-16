@@ -106,7 +106,7 @@ describe('Cloudscraper', function() {
 
   it('should make post request with body as object', function(done) {
     var exprectedResponse = { statusCode: 200 },
-        rawBody = {a: 1, b: 2},
+        rawBody = {a: '1', b: 2},
         encodedBody = 'a=1&b=2',
         postHeaders = headers;
 

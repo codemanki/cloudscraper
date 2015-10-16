@@ -42,6 +42,14 @@ cloudscraper.get('http://website.com/', function(error, response, body) {
 });
 ```
 
+or for `POST` action:
+
+```javascript
+cloudscraper.post('http://website.com/', {field1: 'value', field2: 2}, function(error, response, body) {
+  ...
+});
+```
+
 
 ##Error object
 Error object has following structure:
@@ -78,6 +86,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
 
 ## Kudos to contributors
  - [roflmuffin](https://github.com/roflmuffin)
+ - [Colecf](https://github.com/Colecf)
 
 ## Dependencies
 * request@2.49.0 https://github.com/request/request
