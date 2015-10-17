@@ -157,7 +157,7 @@ function solveChallenge(response, body, options, callback) {
                                       //by default, but for some reason it's not
       options.url = response.headers.location;
       delete options.qs;
-      request(options, callback);
+      makeRequest(options, callback);
     } else {
       callback(error, response, body);
     }
