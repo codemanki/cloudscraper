@@ -6,27 +6,65 @@ var request      = require('request').defaults({jar: true}), // Cookies should b
 /**
  * Performs get request to url with headers.
  * @param  {String}    url
- * @param  {Function}  callback    function(error, body, response) {}
+ * @param  {Function}  callback    function(error, response, body) {}
  * @param  {[Object}   headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
  */
 cloudscraper.get = function(url, callback, headers) {
-  headers = headers || {};
+  performRequest({
+    method: 'GET',
+    url: url,
+    headers: headers
+  }, callback);
+};
 
-  if (!url || !callback) {
+/**
+ * Performs post request to url with headers.
+ * @param  {String}        url
+ * @param  {String|Object} body        Will be passed as form data
+ * @param  {Function}      callback    function(error, response, body) {}
+ * @param  {[Object}       headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
+ */
+cloudscraper.post = function(url, body, callback, headers) {
+  var data = '',
+      bodyType = Object.prototype.toString.call(body);
+
+  if(bodyType === '[object String]') {
+    data = body;
+  } else if (bodyType === '[object Object]') {
+    data = Object.keys(body).map(function(key) {
+      return key + '=' + body[key];
+    }).join('&');
+  }
+
+  headers = headers || {};
+  headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded; charset=UTF-8';
+  headers['Content-Length'] = headers['Content-Length'] || data.length;
+
+  performRequest({
+    method: 'POST',
+    body: data,
+    url: url,
+    headers: headers
+  }, callback);
+}
+
+cloudscraper.request = function(options, callback) {
+  performRequest(options, callback);
+}
+
+function performRequest(options, callback) {
+  var method;
+  options = options || {};
+  options.headers = options.headers || {};
+  makeRequest = requestMethod(options.method);
+
+  if (!options.url || !callback) {
     throw new Error('To perform request, define both url and callback');
   }
 
-  //If no ua is passed, add one
-  if (!headers['User-Agent']) {
-    headers['User-Agent'] = UserAgent;
-  }
+  options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
 
-  performRequest(url, callback, headers);
-};
-
-
-function performRequest(url, callback, headers) {
-  request.get({url: url, headers: headers}, function(error, response, body) {
+  makeRequest(options, function(error, response, body) {
     var validationError;
 
     if (validationError = checkForErrors(error, body)) {
@@ -36,11 +74,11 @@ function performRequest(url, callback, headers) {
     // If body contains specified string, solve challenge
     if (body.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
       setTimeout(function() {
-        return solveChallenge(response, body, headers, callback);
+        return solveChallenge(response, body, options, callback);
       }, Timeout);
     } else {
       // All is good
-      callback(error, body, response);
+      callback(error, response, body);
     }
   });
 }
@@ -69,13 +107,13 @@ function checkForErrors(error, body) {
 }
 
 
-function solveChallenge(response, body, requestHeaders, callback) {
+function solveChallenge(response, body, options, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
+      host = response.request.host,
+      makeRequest = requestMethod(options.method),
       jsChlVc,
       answerResponse,
-      answerUrl,
-      host = response.request.host,
-      headers = requestHeaders;
+      answerUrl;
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
@@ -109,16 +147,29 @@ function solveChallenge(response, body, requestHeaders, callback) {
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
 
-  headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
+  options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
+  options.url = answerUrl;
+  options.qs = answerResponse;
 
   // Make request with answer
-  request.get({
-    url: answerUrl,
-    qs: answerResponse,
-    headers: headers
-  }, function(error, response, body) {
-    callback(error, body, response);
+  makeRequest(options, function(error, response, body) {
+    if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
+                                      //by default, but for some reason it's not
+      options.url = response.headers.location;
+      delete options.qs;
+      makeRequest(options, callback);
+    } else {
+      callback(error, response, body);
+    }
   });
+}
+
+// Workaround for better testing. Request has pretty poor API
+function requestMethod(method) {
+  // For now only GET and POST are supported
+  method = method.toUpperCase();
+
+  return method === 'POST' ? request.post : request.get;
 }
 
 module.exports = cloudscraper;

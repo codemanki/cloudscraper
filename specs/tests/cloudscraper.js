@@ -33,10 +33,10 @@ describe('Cloudscraper', function() {
 
     // Stub first call, which request makes to page. It should return requested page
     sandbox.stub(requestDefault, 'get')
-           .withArgs({url: url, headers: headers})
+           .withArgs({method: 'GET', url: url, headers: headers})
            .callsArgWith(1, null, exprectedResponse, requestedPage);
 
-    cloudscraper.get(url, function(error, body, response) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.null();
       expect(body).to.be.equal(requestedPage);
       expect(response).to.be.equal(exprectedResponse);
@@ -52,12 +52,13 @@ describe('Cloudscraper', function() {
 
     // Cloudflare is enabled for site. It returns a page with js challenge
     stubbed = sandbox.stub(requestDefault, 'get')
-                .withArgs({url: url, headers: headers})
+                .withArgs({method: 'GET', url: url, headers: headers})
                 .callsArgWith(1, null, response, jsChallengePage);
 
     // Second call to request.get will have challenge solution
     // It should contain url, answer, headers with Referer
     stubbed.withArgs({
+      method: 'GET',
       url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
         'jschl_vc': '89cdff5eaa25923e0f26e29e5195dce9',
@@ -71,7 +72,7 @@ describe('Cloudscraper', function() {
     })
     .callsArgWith(1, null, response, requestedPage);
 
-    cloudscraper.get(url, function(error, body, response) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.null();
       expect(body).to.be.equal(requestedPage);
       expect(response).to.be.equal(response);
@@ -80,4 +81,49 @@ describe('Cloudscraper', function() {
 
     this.clock.tick(7000); // tick the timeout
   });
+
+  it('should make post request with body as string', function(done) {
+    var exprectedResponse = { statusCode: 200 },
+        body = 'form-data-body',
+        postHeaders = headers;
+
+    postHeaders['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+    postHeaders['Content-Length'] = body.length;
+
+
+    // Stub first call, which request makes to page. It should return requested page
+    sandbox.stub(requestDefault, 'post')
+           .withArgs({method: 'POST', url: url, headers: postHeaders, body: body})
+           .callsArgWith(1, null, exprectedResponse, requestedPage);
+
+    cloudscraper.post(url, body, function(error, response, body) {
+      expect(error).to.be.null();
+      expect(body).to.be.equal(requestedPage);
+      expect(response).to.be.equal(exprectedResponse);
+      done();
+    }, headers);
+  });
+
+  it('should make post request with body as object', function(done) {
+    var exprectedResponse = { statusCode: 200 },
+        rawBody = {a: '1', b: 2},
+        encodedBody = 'a=1&b=2',
+        postHeaders = headers;
+
+    postHeaders['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+    postHeaders['Content-Length'] = encodedBody.length;
+
+    // Stub first call, which request makes to page. It should return requested page
+    sandbox.stub(requestDefault, 'post')
+           .withArgs({method: 'POST', url: url, headers: postHeaders, body: encodedBody})
+           .callsArgWith(1, null, exprectedResponse, requestedPage);
+
+    cloudscraper.post(url, rawBody, function(error, response, body) {
+      expect(error).to.be.null();
+      expect(body).to.be.equal(requestedPage);
+      expect(response).to.be.equal(exprectedResponse);
+      done();
+    }, headers);
+  });
+
 });

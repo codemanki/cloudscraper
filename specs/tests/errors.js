@@ -35,7 +35,7 @@ describe('Cloudscraper', function() {
         fakeError = {fake: 'error'}; //not real request error, but it doesn't matter
 
     sandbox.stub(requestDefault, 'get')
-           .withArgs({url: url, headers: headers})
+           .withArgs({method: 'GET', url: url, headers: headers})
            .callsArgWith(1, fakeError, response, '');
 
     cloudscraper.get(url, function(error) {
@@ -49,7 +49,7 @@ describe('Cloudscraper', function() {
     var response = { statusCode: 503 };
 
     sandbox.stub(requestDefault, 'get')
-           .withArgs({url: url, headers: headers})
+           .withArgs({method: 'GET', url: url, headers: headers})
            .callsArgWith(1, null, response, captchaPage);
 
     cloudscraper.get(url, function(error, body) {
@@ -64,7 +64,7 @@ describe('Cloudscraper', function() {
     var response = { statusCode: 500 };
 
     sandbox.stub(requestDefault, 'get')
-           .withArgs({url: url, headers: headers})
+           .withArgs({method:'GET', url: url, headers: headers})
            .callsArgWith(1, null, response, accessDenied);
 
     cloudscraper.get(url, function(error, body) {
@@ -77,7 +77,7 @@ describe('Cloudscraper', function() {
   it('should return error if challenge page failed to be parsed', function(done) {
     var response = helper.fakeResponseObject(200, headers, invalidChallenge, url);
     sandbox.stub(requestDefault, 'get')
-           .withArgs({url: url, headers: headers})
+           .withArgs({method: 'GET', url: url, headers: headers})
            .callsArgWith(1, null, response, invalidChallenge);
 
     cloudscraper.get(url, function(error, body) {
