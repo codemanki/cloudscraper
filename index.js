@@ -50,8 +50,8 @@ cloudscraper.post = function(url, body, callback, headers) {
 
 /**
  * Performs get or post request with generic request options
- * @Param {Object}   options   Object to be passed to request's options argument
- * @Param {Function} callback  function(error, response, body) {}
+ * @param {Object}   options   Object to be passed to request's options argument
+ * @param {Function} callback  function(error, response, body) {}
  */
 cloudscraper.request = function(options, callback) {
   performRequest(options, callback);
@@ -190,7 +190,7 @@ function requestMethod(method) {
 }
 
 function giveResults(options, error, response, body, callback) {
-  if(typeof options.realEncoding == 'string') {
+  if(typeof options.realEncoding === 'string') {
     callback(error, response, body.toString(options.realEncoding));
   } else {
     callback(error, response, body);
