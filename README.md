@@ -50,6 +50,16 @@ cloudscraper.post('http://website.com/', {field1: 'value', field2: 2}, function(
 });
 ```
 
+A generic request can be made with `cloudscraper.request(options, callback)`. The options object should follow [request's options](https://www.npmjs.com/package/request#request-options-callback). Not everything is supported however, for example http methods other than GET and POST. If you wanted to request an image in binary data you could use the encoding option:
+
+```javascript
+cloudscraper.request({method: 'GET',
+                      url:'http://website.com/image',
+                      encoding: null,
+                      }, function(err, response, body) {
+                      //body is now a buffer object instead of a string
+});
+```
 
 ##Error object
 Error object has following structure:

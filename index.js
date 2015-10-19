@@ -7,7 +7,7 @@ var request      = require('request').defaults({jar: true}), // Cookies should b
  * Performs get request to url with headers.
  * @param  {String}    url
  * @param  {Function}  callback    function(error, response, body) {}
- * @param  {[Object}   headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
+ * @param  {Object}    headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
  */
 cloudscraper.get = function(url, callback, headers) {
   performRequest({
@@ -22,7 +22,7 @@ cloudscraper.get = function(url, callback, headers) {
  * @param  {String}        url
  * @param  {String|Object} body        Will be passed as form data
  * @param  {Function}      callback    function(error, response, body) {}
- * @param  {[Object}       headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
+ * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
  */
 cloudscraper.post = function(url, body, callback, headers) {
   var data = '',
@@ -48,6 +48,11 @@ cloudscraper.post = function(url, body, callback, headers) {
   }, callback);
 }
 
+/**
+ * Performs get or post request with generic request options
+ * @param {Object}   options   Object to be passed to request's options argument
+ * @param {Function} callback  function(error, response, body) {}
+ */
 cloudscraper.request = function(options, callback) {
   performRequest(options, callback);
 }
@@ -58,6 +63,15 @@ function performRequest(options, callback) {
   options.headers = options.headers || {};
   makeRequest = requestMethod(options.method);
 
+  //Can't just do the normal options.encoding || 'utf8'
+  //because null is a valid encoding.
+  if('encoding' in options) {
+    options.realEncoding = options.encoding;
+  } else {
+    options.realEncoding = 'utf8';
+  }
+  options.encoding = null;
+  
   if (!options.url || !callback) {
     throw new Error('To perform request, define both url and callback');
   }
@@ -66,19 +80,20 @@ function performRequest(options, callback) {
 
   makeRequest(options, function(error, response, body) {
     var validationError;
+    var stringBody = body.toString('utf8');
 
-    if (validationError = checkForErrors(error, body)) {
+    if (validationError = checkForErrors(error, stringBody)) {
       return callback(validationError, body, response);
     }
 
     // If body contains specified string, solve challenge
-    if (body.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
+    if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
       setTimeout(function() {
-        return solveChallenge(response, body, options, callback);
+        return solveChallenge(response, stringBody, options, callback);
       }, Timeout);
     } else {
       // All is good
-      callback(error, response, body);
+      giveResults(options, error, response, body, callback);
     }
   });
 }
@@ -157,9 +172,11 @@ function solveChallenge(response, body, options, callback) {
                                       //by default, but for some reason it's not
       options.url = response.headers.location;
       delete options.qs;
-      makeRequest(options, callback);
+      makeRequest(options, function(error, response, body) {
+        giveResults(options, error, response, body, callback);
+      });
     } else {
-      callback(error, response, body);
+      giveResults(options, error, response, body, callback);
     }
   });
 }
@@ -170,6 +187,14 @@ function requestMethod(method) {
   method = method.toUpperCase();
 
   return method === 'POST' ? request.post : request.get;
+}
+
+function giveResults(options, error, response, body, callback) {
+  if(typeof options.realEncoding === 'string') {
+    callback(error, response, body.toString(options.realEncoding));
+  } else {
+    callback(error, response, body);
+  }
 }
 
 module.exports = cloudscraper;
