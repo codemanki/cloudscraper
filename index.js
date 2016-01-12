@@ -83,7 +83,7 @@ function performRequest(options, callback) {
     var stringBody;
 
     if (!body || !body.toString) {
-      return callback({ errorType: 0, error: error });
+      return callback({ errorType: 0, error: error }, body, response);
     }
 
     stringBody = body.toString('utf8');
