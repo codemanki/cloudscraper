@@ -74,6 +74,21 @@ describe('Cloudscraper', function() {
     }, headers);
   });
 
+  it('should return error if body is undefined', function(done){
+    //https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
+    var response = { statusCode: 500 };
+
+    sandbox.stub(requestDefault, 'get')
+      .withArgs({method:'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, response, undefined);
+
+    cloudscraper.get(url, function(error, body) {
+      expect(error).to.be.eql({errorType: 0, error: null}); // errorType 2, means inner cloudflare error
+      expect(body).to.be.eql(undefined);
+      done();
+    }, headers);
+  });
+
   it('should return error if challenge page failed to be parsed', function(done) {
     var response = helper.fakeResponseObject(200, headers, invalidChallenge, url);
     sandbox.stub(requestDefault, 'get')
