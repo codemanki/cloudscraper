@@ -71,7 +71,7 @@ function performRequest(options, callback) {
     options.realEncoding = 'utf8';
   }
   options.encoding = null;
-  
+
   if (!options.url || !callback) {
     throw new Error('To perform request, define both url and callback');
   }
@@ -80,7 +80,13 @@ function performRequest(options, callback) {
 
   makeRequest(options, function(error, response, body) {
     var validationError;
-    var stringBody = body.toString('utf8');
+    var stringBody;
+
+    if (!body || !body.toString) {
+      return callback({ errorType: 0, error: error }, body, response);
+    }
+
+    stringBody = body.toString('utf8');
 
     if (validationError = checkForErrors(error, stringBody)) {
       return callback(validationError, body, response);
