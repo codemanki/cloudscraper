@@ -1,4 +1,5 @@
-var request      = require('request').defaults({jar: true}), // Cookies should be enabled
+var customJar    = require('request').jar(), // custom jar to remove
+    request      = require('request').defaults({jar: customJar}), // Cookies should be enabled
     UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
     Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
     cloudscraper = {};
@@ -57,6 +58,11 @@ cloudscraper.request = function(options, callback) {
   performRequest(options, callback);
 }
 
+function initCookie() {
+  customJar    = require('request').jar();
+  request      = require('request').defaults({jar: customJar});
+}
+
 function performRequest(options, callback) {
   var method;
   options = options || {};
@@ -77,7 +83,6 @@ function performRequest(options, callback) {
   }
 
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
-
   makeRequest(options, function(error, response, body) {
     var validationError;
     var stringBody;
@@ -168,7 +173,8 @@ function solveChallenge(response, body, options, callback) {
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
 
-  options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
+  var originalUri = response.request.uri;
+  options.headers['Referer'] = originalUri.href; // Original url should be placed as referer
   options.url = answerUrl;
   options.qs = answerResponse;
 
@@ -179,9 +185,11 @@ function solveChallenge(response, body, options, callback) {
       options.url = response.headers.location;
       delete options.qs;
       makeRequest(options, function(error, response, body) {
+        initCookie();
         giveResults(options, error, response, body, callback);
       });
     } else {
+      initCookie();
       giveResults(options, error, response, body, callback);
     }
   });
