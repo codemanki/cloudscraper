@@ -45,6 +45,23 @@ describe('Cloudscraper', function() {
 
   });
 
+  it('should not trigged any error if recaptcha is present in page not protected by CF', function(done) {
+    var exprectedResponse = { statusCode: 200 };
+    var pageWithCaptcha = helper.getFixture('page_with_recaptcha.html');
+
+    sandbox.stub(requestDefault, 'get')
+      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, exprectedResponse, pageWithCaptcha);
+
+    cloudscraper.get(url, function(error, response, body) {
+      expect(error).to.be.null();
+      expect(body).to.be.equal(pageWithCaptcha);
+      expect(response).to.be.equal(exprectedResponse);
+      done();
+    }, headers);
+
+  });
+
   it('should resolve challenge (version as on 21.05.2015) and then return page', function(done) {
     var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html'),
         response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
@@ -131,7 +148,7 @@ describe('Cloudscraper', function() {
   it('should return raw data when encoding is null', function(done) {
     var expectedResponse = { statusCode: 200 };
     var requestedData = new Buffer('R0lGODlhDwAPAKECAAAAzMzM/////wAAACwAAAAADwAPAAACIISPeQHsrZ5ModrLlN48CXF8m2iQ3YmmKqVlRtW4MLwWACH+H09wdGltaXplZCBieSBVbGVhZCBTbWFydFNhdmVyIQAAOw==', 'base64');
-    
+
     sandbox.stub(requestDefault, 'get')
       .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: null})
       .callsArgWith(1, null, expectedResponse, requestedData);
