@@ -113,7 +113,7 @@ function checkForErrors(error, body) {
   }
 
   // Finding captcha
-  if (body.indexOf('why_captcha') !== -1 || /recaptcha/i.test(body)) {
+  if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
     return { errorType: 1 };
   }
 
