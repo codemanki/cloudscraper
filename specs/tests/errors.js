@@ -103,4 +103,29 @@ describe('Cloudscraper', function() {
 
     this.clock.tick(7000); // tick the timeout
   });
+
+  it.only('should return error if it was thrown by request when solving challenge', function(done) {
+    var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html'),
+        response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
+        connectionError = {error: 'ECONNRESET'},
+        stubbed;
+
+    // Cloudflare is enabled for site. It returns a page with js challenge
+    stubbed = sandbox.stub(requestDefault, 'get')
+      .onCall(0)
+      .callsArgWith(1, null, response, jsChallengePage);
+
+    stubbed
+      .onCall(1)
+      .callsArgWith(1, connectionError);
+
+    cloudscraper.get(url, function(error) {
+      expect(error).to.be.eql({errorType: 0, error: connectionError}); // errorType 0, connection eror for example
+      done();
+    }, headers);
+
+    this.clock.tick(7000); // tick the timeout
+
+  });
+
 });
