@@ -82,7 +82,7 @@ function performRequest(options, callback) {
     var validationError;
     var stringBody;
 
-    if (!body || !body.toString) {
+    if (error || !body || !body.toString) {
       return callback({ errorType: 0, error: error }, body, response);
     }
 
@@ -174,6 +174,10 @@ function solveChallenge(response, body, options, callback) {
 
   // Make request with answer
   makeRequest(options, function(error, response, body) {
+    if(error) {
+      return callback({ errorType: 0, error: error }, response, body);
+    }
+
     if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
                                       //by default, but for some reason it's not
       options.url = response.headers.location;
