@@ -104,7 +104,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it.only('should return error if it was thrown by request when solving challenge', function(done) {
+  it('should return error if it was thrown by request when solving challenge', function(done) {
     var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html'),
         response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
         connectionError = {error: 'ECONNRESET'},
