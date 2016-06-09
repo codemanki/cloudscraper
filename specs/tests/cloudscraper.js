@@ -101,6 +101,45 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
+  it('should resolve challenge (version as on 09.06.2016) and then return page', function(done) {
+    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html'),
+        response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
+        stubbed;
+
+    // Cloudflare is enabled for site. It returns a page with js challenge
+    stubbed = sandbox.stub(requestDefault, 'get')
+      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, response, jsChallengePage);
+
+    // Second call to request.get will have challenge solution
+    // It should contain url, answer, headers with Referer
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: {
+        'jschl_vc': '346b959db0cfa38f9938acc11d6e1e6e',
+        'jschl_answer': 6632 + 'example-site.dev'.length, // 6632 is a answer to cloudflares js challenge in this particular case
+        'pass': '1465488330.6-N/NbGTg+IM'
+      },
+      headers: {
+        'User-Agent': 'Chrome',
+        'Referer': 'http://example-site.dev/path/'
+      },
+      encoding: null,
+      realEncoding: 'utf8'
+    })
+    .callsArgWith(1, null, response, requestedPage);
+
+    cloudscraper.get(url, function(error, response, body) {
+      expect(error).to.be.null();
+      expect(body).to.be.equal(requestedPage);
+      expect(response).to.be.equal(response);
+      done();
+    }, headers);
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
   it('should make post request with body as string', function(done) {
     var exprectedResponse = { statusCode: 200 },
         body = 'form-data-body',
