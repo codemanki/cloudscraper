@@ -155,6 +155,7 @@ function solveChallenge(response, body, options, callback) {
   challenge = challenge.replace(/a\.value =(.+?) \+ .+?;/i, '$1');
 
   challenge = challenge.replace(/\s{3,}[a-z](?: = |\.).+/g, '');
+  challenge = challenge.replace(/'; \d+'/g, '');
 
   try {
     answerResponse = {
