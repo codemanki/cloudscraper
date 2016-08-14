@@ -52,7 +52,7 @@ describe('Cloudscraper', function() {
       .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
       .callsArgWith(1, null, response, captchaPage);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.eql({errorType: 1}); // errorType 1, means captcha is served
       expect(body).to.be.eql(captchaPage);
       done();
@@ -67,7 +67,7 @@ describe('Cloudscraper', function() {
       .withArgs({method:'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
       .callsArgWith(1, null, response, accessDenied);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.eql({errorType: 2, error: 1006}); // errorType 2, means inner cloudflare error
       expect(body).to.be.eql(accessDenied);
       done();
@@ -82,7 +82,7 @@ describe('Cloudscraper', function() {
       .withArgs({method:'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
       .callsArgWith(1, null, response, undefined);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.eql({errorType: 0, error: null}); // errorType 2, means inner cloudflare error
       expect(body).to.be.eql(undefined);
       done();
@@ -95,7 +95,7 @@ describe('Cloudscraper', function() {
       .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
       .callsArgWith(1, null, response, invalidChallenge);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, response, body) {
       expect(error.errorType).to.be.eql(3); // errorType 3, means parsing failed
       expect(body).to.be.eql(invalidChallenge);
       done();

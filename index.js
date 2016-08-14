@@ -87,13 +87,13 @@ function performRequest(options, callback) {
     var stringBody;
 
     if (error || !body || !body.toString) {
-      return callback({ errorType: 0, error: error }, body, response);
+      return callback({ errorType: 0, error: error }, response, body);
     }
 
     stringBody = body.toString('utf8');
 
     if (validationError = checkForErrors(error, stringBody)) {
-      return callback(validationError, body, response);
+      return callback(validationError, response, body);
     }
 
     // If body contains specified string, solve challenge
@@ -144,7 +144,7 @@ function solveChallenge(response, body, options, callback) {
       answerUrl;
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, response, body);
   }
 
   jsChlVc = challenge[1];
@@ -152,7 +152,7 @@ function solveChallenge(response, body, options, callback) {
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, response, body);
   }
 
   challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
@@ -171,7 +171,7 @@ function solveChallenge(response, body, options, callback) {
       'pass': challenge_pass
     };
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
@@ -204,7 +204,7 @@ function setCookieAndReload(response, body, options, callback) {
   var makeRequest = requestMethod(options.method);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, response, body);
   }
 
   var base64EncodedCode = challenge[1];
@@ -220,7 +220,7 @@ function setCookieAndReload(response, body, options, callback) {
   try {
     jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
   makeRequest(options, function(error, response, body) {
