@@ -7,8 +7,10 @@ describe('Cloudscraper', function() {
       requestedPage   = helper.getFixture('requested_page.html'),
       headers         = {'User-Agent': 'Chrome'},
 
+      // Since request.jar returns new cookie jar instance, create one global instance and then stub it in beforeEach
+      jar             = request.jar(),
       // Since request.defaults returns new wrapper, create one global instance and then stub it in beforeEach
-      requestDefault  = request.defaults({jar: true}),
+      requestDefault  = request.defaults({jar: jar}),
       cloudscraper;
 
   before(function() {
@@ -17,6 +19,7 @@ describe('Cloudscraper', function() {
 
   beforeEach(function () {
     sandbox = sinon.sandbox.create();
+    sandbox.stub(request, 'jar').returns(jar);
     sandbox.stub(request, 'defaults').returns(requestDefault);
     cloudscraper = require('../../index');
     // since cloudflare requires timeout, the module relies on setTimeout. It should be proprely stubbed to avoid ut running for too long
@@ -205,5 +208,32 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(requestedData);
       done();
     });
+  });
+
+  it('should set the given cookie and then return page', function(done) {
+    var jsChallengePage = helper.getFixture('js_challenge_cookie.html'),
+        response = helper.fakeResponseObject(200, headers, jsChallengePage, url),
+        stubbed;
+
+    // Cloudflare is enabled for site.
+    // It returns a redirecting page if a (session) cookie is unset.
+    sandbox.stub(requestDefault, 'get', function fakeGet(options, cb) {
+      if (options.url === url) {
+        var cookieString = jar.getCookieString(url);
+        if (cookieString === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a') {
+          cb(null, response, requestedPage);
+        } else {
+          cb(null, response, jsChallengePage);
+        }
+      } else {
+        cb(new Error("Unexpected request"));
+      }
+    });
+
+    cloudscraper.get(url, function(error, response, body) {
+      expect(error).to.be.null();
+      expect(body).to.be.equal(requestedPage);
+      done();
+    }, headers);
   });
 });
