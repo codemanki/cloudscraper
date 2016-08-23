@@ -101,7 +101,7 @@ function performRequest(options, callback) {
       setTimeout(function() {
         return solveChallenge(response, stringBody, options, callback);
       }, Timeout);
-    } else if (stringBody.indexOf('You are being redirected...') !== -1 &&
+    } else if (stringBody.indexOf('You are being redirected') !== -1 ||
                stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
       setCookieAndReload(response, stringBody, options, callback);
     } else {
