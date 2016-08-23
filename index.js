@@ -1,4 +1,8 @@
-var request      = require('request').defaults({jar: true}), // Cookies should be enabled
+var vm = require('vm');
+var requestModule = require('request');
+var jar = requestModule.jar();
+
+var request      = requestModule.defaults({jar: jar}), // Cookies should be enabled
     UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
     Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
     cloudscraper = {};
@@ -97,6 +101,9 @@ function performRequest(options, callback) {
       setTimeout(function() {
         return solveChallenge(response, stringBody, options, callback);
       }, Timeout);
+    } else if (stringBody.indexOf('You are being redirected...') !== -1 &&
+               stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
+      setCookieAndReload(response, stringBody, options, callback);
     } else {
       // All is good
       giveResults(options, error, response, body, callback);
@@ -189,6 +196,38 @@ function solveChallenge(response, body, options, callback) {
     } else {
       giveResults(options, error, response, body, callback);
     }
+  });
+}
+
+function setCookieAndReload(response, body, options, callback) {
+  var challenge = body.match(/S='([^']+)'/);
+  var makeRequest = requestMethod(options.method);
+
+  if (!challenge) {
+    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
+  }
+
+  var base64EncodedCode = challenge[1];
+  var cookieSettingCode = new Buffer(base64EncodedCode, 'base64').toString('ascii');
+
+  var sandbox = {
+    location: {
+      reload: function() {}
+    },
+    document: {}
+  };
+  vm.runInNewContext(cookieSettingCode, sandbox);
+  try {
+    jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
+  } catch (err) {
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+  }
+
+  makeRequest(options, function(error, response, body) {
+    if(error) {
+      return callback({ errorType: 0, error: error }, response, body);
+    }
+    giveResults(options, error, response, body, callback);
   });
 }
 

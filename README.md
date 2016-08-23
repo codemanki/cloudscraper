@@ -91,7 +91,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
 ## TODO
  - [x] Check for recaptcha
  - [ ] Support cookies, so challenge can be solved once per session
- - [ ] Support page with simple redirects
+ - [x] Support page with simple redirects
  - [x] Add proper testing
 
 ## Kudos to contributors
