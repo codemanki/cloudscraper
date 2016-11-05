@@ -10,10 +10,10 @@ var request      = requestModule.defaults({jar: jar}), // Cookies should be enab
 /**
  * Performs get request to url with headers.
  * @param  {String}    url
- * @param  {Function}  callback    function(error, response, body) {}
  * @param  {Object}    headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
+ * @param  {Function}  callback    function(error, response, body) {}
  */
-cloudscraper.get = function(url, callback, headers) {
+cloudscraper.get = function(url, headers, callback) {
   performRequest({
     method: 'GET',
     url: url,
@@ -25,10 +25,10 @@ cloudscraper.get = function(url, callback, headers) {
  * Performs post request to url with headers.
  * @param  {String}        url
  * @param  {String|Object} body        Will be passed as form data
- * @param  {Function}      callback    function(error, response, body) {}
  * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
+ * @param  {Function}      callback    function(error, response, body) {}
  */
-cloudscraper.post = function(url, body, callback, headers) {
+cloudscraper.post = function(url, body, headers, callback) {
   var data = '',
       bodyType = Object.prototype.toString.call(body);
 
