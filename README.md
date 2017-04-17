@@ -61,7 +61,7 @@ cloudscraper.request({method: 'GET',
 });
 ```
 
-##Error object
+## Error object
 Error object has following structure:
 ```
 var error = {errorType: 0, error:...};
