@@ -14,6 +14,12 @@ var request      = requestModule.defaults({jar: jar}), // Cookies should be enab
  * @param  {Function}  callback    function(error, response, body) {}
  */
 cloudscraper.get = function(url, headers, callback) {
+  if (typeof headers === 'function') { // backward compatibility with get(url, callback)
+    var temp;
+    temp = headers;
+    headers = callback;
+    callback = temp;
+  }
   performRequest({
     method: 'GET',
     url: url,
@@ -29,6 +35,12 @@ cloudscraper.get = function(url, headers, callback) {
  * @param  {Function}      callback    function(error, response, body) {}
  */
 cloudscraper.post = function(url, body, headers, callback) {
+  if (typeof headers === 'function') { // backward compatibility with post(url, body, callback)
+    var temp;
+    temp = headers;
+    headers = callback;
+    callback = temp;
+  }
   var data = '',
       bodyType = Object.prototype.toString.call(body);
 
