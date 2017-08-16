@@ -11,24 +11,14 @@ var request      = requestModule.defaults({jar: jar}), // Cookies should be enab
  * Performs get request to url with headers.
  * @param  {String}    url
  * @param  {Object}    headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
- * @param  {Function}  callback    function(error, response, body) {}. If omitted, a Promise will be returned.
+ * @param  {Function}  callback    function(error, response, body) {}
  */
 cloudscraper.get = function(url, headers, callback) {
-  if (callback === undefined) { /* no callback specified, returning Promise */
-    return new Promise(function (resolve, reject) {
-      performRequest({
-        method: 'GET',
-        url: url,
-        headers: headers
-      }, true, { resolve: resolve, reject: reject });
-    })
-  } else { /* callback specified */
-    performRequest({
-      method: 'GET',
-      url: url,
-      headers: headers
-    }, false, callback);
-  }
+  performRequest({
+    method: 'GET',
+    url: url,
+    headers: headers
+  }, callback);
 };
 
 /**
@@ -36,7 +26,7 @@ cloudscraper.get = function(url, headers, callback) {
  * @param  {String}        url
  * @param  {String|Object} body        Will be passed as form data
  * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
- * @param  {Function}      callback    function(error, response, body) {}. If omitted, a Promise will be returned.
+ * @param  {Function}      callback    function(error, response, body) {}
  */
 cloudscraper.post = function(url, body, headers, callback) {
   var data = '',
@@ -54,44 +44,24 @@ cloudscraper.post = function(url, body, headers, callback) {
   headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded; charset=UTF-8';
   headers['Content-Length'] = headers['Content-Length'] || data.length;
 
-  if (callback === undefined) {
-    return new Promise(function(resolve, reject) {
-      performRequest({
-        method: 'POST',
-        body: data,
-        url: url,
-        headers: headers
-      }, true, { resolve: resolve, reject: reject });
-    })
-  } else {
-    performRequest({
-      method: 'POST',
-      body: data,
-      url: url,
-      headers: headers
-    }, false, callback);
-  }
+  performRequest({
+    method: 'POST',
+    body: data,
+    url: url,
+    headers: headers
+  }, callback);
 }
 
 /**
  * Performs get or post request with generic request options
  * @param {Object}   options   Object to be passed to request's options argument
- * @param {Function} callback  function(error, response, body) {}. If omitted, a Promise will be returned.
+ * @param {Function} callback  function(error, response, body) {}
  */
 cloudscraper.request = function(options, callback) {
-  if (callback === undefined) {
-    return new Promise(function (resolve, reject) {
-      performRequest(options, true, { resolve: resolve, reject: reject });
-    })
-  } else {
-    performRequest(options, false, callback);
-  }
+  performRequest(options, callback);
 }
 
-// The promisable variable is boolean.
-// If promisable === true, then the callback is an object and contains resolve and reject callbacks.
-// If promisable === false, then the callback is a function.
-function performRequest(options, promisable, callback) {
+function performRequest(options, callback) {
   var method;
   options = options || {};
   options.headers = options.headers || {};
@@ -106,8 +76,8 @@ function performRequest(options, promisable, callback) {
   }
   options.encoding = null;
 
-  if (!options.url) {
-    throw new Error('To perform request, define url.');
+  if (!options.url || !callback) {
+    throw new Error('To perform request, define both url and callback');
   }
 
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
@@ -117,34 +87,26 @@ function performRequest(options, promisable, callback) {
     var stringBody;
 
     if (error || !body || !body.toString) {
-      if (promisable) {
-        return callback.reject({ errorType: 0, error: error });
-      } else {
-        return callback({ errorType: 0, error: error }, body, response);
-      }
+      return callback({ errorType: 0, error: error }, body, response);
     }
 
     stringBody = body.toString('utf8');
 
     if (validationError = checkForErrors(error, stringBody)) {
-      if (promisable) {
-        return callback.reject(validationError);
-      } else {
-        return callback(validationError, body, response);
-      }
+      return callback(validationError, body, response);
     }
 
     // If body contains specified string, solve challenge
     if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
       setTimeout(function() {
-        return solveChallenge(response, stringBody, options, promisable, callback);
+        return solveChallenge(response, stringBody, options, callback);
       }, Timeout);
     } else if (stringBody.indexOf('You are being redirected') !== -1 ||
                stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
-      setCookieAndReload(response, stringBody, options, promisable, callback);
+      setCookieAndReload(response, stringBody, options, callback);
     } else {
       // All is good
-      giveResults(options, error, response, body, promisable, callback);
+      giveResults(options, error, response, body, callback);
     }
   });
 }
@@ -173,7 +135,7 @@ function checkForErrors(error, body) {
 }
 
 
-function solveChallenge(response, body, options, promisable, callback) {
+function solveChallenge(response, body, options, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
       host = response.request.host,
       makeRequest = requestMethod(options.method),
@@ -182,11 +144,7 @@ function solveChallenge(response, body, options, promisable, callback) {
       answerUrl;
 
   if (!challenge) {
-    if (promisable) {
-      return callback.reject({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'});
-    } else {
-      return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
-    }
+    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
   }
 
   jsChlVc = challenge[1];
@@ -194,12 +152,7 @@ function solveChallenge(response, body, options, promisable, callback) {
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    if (promisable) {
-      return callback.reject({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'});
-    } else {
-      return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
-    }
-
+    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
   }
 
   challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
@@ -218,11 +171,7 @@ function solveChallenge(response, body, options, promisable, callback) {
       'pass': challenge_pass
     };
   } catch (err) {
-    if (promisable) {
-      return callback.reject({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message});
-    } else {
-      return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
-    }
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
@@ -234,11 +183,7 @@ function solveChallenge(response, body, options, promisable, callback) {
   // Make request with answer
   makeRequest(options, function(error, response, body) {
     if(error) {
-      if (promisable) {
-        return callback.reject({ errorType: 0, error: error });
-      } else {
-        return callback({ errorType: 0, error: error }, response, body);
-      }
+      return callback({ errorType: 0, error: error }, response, body);
     }
 
     if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
@@ -246,24 +191,20 @@ function solveChallenge(response, body, options, promisable, callback) {
       options.url = response.headers.location;
       delete options.qs;
       makeRequest(options, function(error, response, body) {
-        giveResults(options, error, response, body, promisable, callback);
+        giveResults(options, error, response, body, callback);
       });
     } else {
-      giveResults(options, error, response, body, promisable, callback);
+      giveResults(options, error, response, body, callback);
     }
   });
 }
 
-function setCookieAndReload(response, body, options, promisable, callback) {
+function setCookieAndReload(response, body, options, callback) {
   var challenge = body.match(/S='([^']+)'/);
   var makeRequest = requestMethod(options.method);
 
   if (!challenge) {
-    if (promisable) {
-      return callback.reject({errorType: 3, error: 'I cant extract cookie generation code from page'});
-    } else {
-      return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
-    }
+    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
   }
 
   var base64EncodedCode = challenge[1];
@@ -284,13 +225,9 @@ function setCookieAndReload(response, body, options, promisable, callback) {
 
   makeRequest(options, function(error, response, body) {
     if(error) {
-      if (promisable) {
-        return callback.reject({ errorType: 0, error: error });
-      } else {
-        return callback({ errorType: 0, error: error }, response, body);
-      }
+      return callback({ errorType: 0, error: error }, response, body);
     }
-    giveResults(options, error, response, body, promisable, callback);
+    giveResults(options, error, response, body, callback);
   });
 }
 
@@ -302,12 +239,9 @@ function requestMethod(method) {
   return method === 'POST' ? request.post : request.get;
 }
 
-function giveResults(options, error, response, body, promisable, callback) {
+function giveResults(options, error, response, body, callback) {
   if(typeof options.realEncoding === 'string') {
-    body = body.toString(options.realEncoding)
-  }
-  if (promisable) {
-    callback.resolve({ response: response, body: body })
+    callback(error, response, body.toString(options.realEncoding));
   } else {
     callback(error, response, body);
   }
