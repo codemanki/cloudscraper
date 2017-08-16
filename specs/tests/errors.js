@@ -127,5 +127,20 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
 
   });
+  
+  it('should return error if it was thrown by request on promise call', function(done) {
+    var response = { statusCode: 500 },
+        fakeError = {fake: 'error'}; //not real request error, but it doesn't matter
+
+    sandbox.stub(requestDefault, 'get')
+      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, fakeError, response, '');
+
+    cloudscraper.get(url, headers).then().catch( function(error) {
+      expect(error).to.be.eql({errorType: 0, error: fakeError}); // errorType 0, means it is some kind of system error
+      done();
+    });
+
+  });
 
 });

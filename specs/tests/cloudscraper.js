@@ -236,4 +236,60 @@ describe('Cloudscraper', function() {
       done();
     }, headers);
   });
+  
+  it('should return promise correctly on get without callback', function(done) {
+    var expectedResponse = { statusCode: 200 };
+
+    // Stub first call, which request makes to page. It should return requested page
+    sandbox.stub(requestDefault, 'get')
+      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, expectedResponse, requestedPage);
+
+    cloudscraper.get(url, headers).then( function(resolve) {
+      expect(resolve.body).to.be.equal(requestedPage);
+      expect(resolve.response).to.be.equal(expectedResponse);
+      done();
+    });
+  });
+  
+  it('should return promise correctly on post without callback', function(done) {
+    var expectedResponse = { statusCode: 200 },
+        body = 'form-data-body',
+        postHeaders = headers;
+
+    postHeaders['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
+    postHeaders['Content-Length'] = body.length;
+
+
+    // Stub first call, which request makes to page. It should return requested page
+    sandbox.stub(requestDefault, 'post')
+      .withArgs({method: 'POST', url: url, headers: postHeaders, body: body, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, expectedResponse, requestedPage);
+
+    cloudscraper.post(url, body, headers).then( function(resolve) {
+      expect(resolve.body).to.be.equal(requestedPage);
+      expect(resolve.response).to.be.equal(expectedResponse);
+      done();
+    });
+  });
+  
+  it('should return promise correctly on request without callback', function(done) {
+    var expectedResponse = { statusCode: 200 };
+
+    // Stub first call, which request makes to page. It should return requested page
+    sandbox.stub(requestDefault, 'get')
+      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, expectedResponse, requestedPage);
+
+    cloudscraper.request({
+        method: 'GET',
+        url: url,
+        headers: headers
+    }).then( function(resolve) {
+      expect(resolve.body).to.be.equal(requestedPage);
+      expect(resolve.response).to.be.equal(expectedResponse);
+      done();
+    });
+  });
+  
 });
