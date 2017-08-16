@@ -11,10 +11,26 @@ var request      = requestModule.defaults({jar: jar}), // Cookies should be enab
  * Performs get request to url with headers.
  * @param  {String}    url
  * @param  {Object}    headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
- * @param  {Function}  callback    function(error, response, body) {}
+ * @param  {Function}  callback    function(error, response, body) {}, if callback is not provided, it will return promise
  */
 cloudscraper.get = function(url, headers, callback) {
-  if (typeof headers === 'function') { // backward compatibility with get(url, callback)
+  if (callback === undefined && typeof headers !== 'function' ) { // will return promise
+    return new Promise( function(resolve, reject) {
+      performRequest({
+        method: 'GET',
+        url: url,
+        headers: headers
+      }, function(error, response, body) {
+        if (error !== null) reject(error);
+        resolve({
+          response: response,
+          body: body,
+        });
+      });
+    });
+  } 
+  
+  if (typeof headers === 'function') { // not promise, backward compatibility with get(url, callback)
     var temp;
     temp = headers;
     headers = callback;
@@ -32,24 +48,45 @@ cloudscraper.get = function(url, headers, callback) {
  * @param  {String}        url
  * @param  {String|Object} body        Will be passed as form data
  * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
- * @param  {Function}      callback    function(error, response, body) {}
+ * @param  {Function}      callback    function(error, response, body) {}, if callback is not provided, it will return promise
  */
 cloudscraper.post = function(url, body, headers, callback) {
-  if (typeof headers === 'function') { // backward compatibility with post(url, body, callback)
-    var temp;
-    temp = headers;
-    headers = callback;
-    callback = temp;
-  }
   var data = '',
       bodyType = Object.prototype.toString.call(body);
 
-  if(bodyType === '[object String]') {
+  if (bodyType === '[object String]') {
     data = body;
   } else if (bodyType === '[object Object]') {
     data = Object.keys(body).map(function(key) {
       return key + '=' + body[key];
     }).join('&');
+  }
+  
+  if (callback === undefined && typeof headers !== 'function' ) { // will return promise
+    headers = headers || {};
+    headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded; charset=UTF-8';
+    headers['Content-Length'] = headers['Content-Length'] || data.length;
+    return new Promise( function(resolve, reject) {
+      performRequest({
+        method: 'POST',
+        body: data,
+        url: url,
+        headers: headers
+      }, function(error, response, body) {
+        if (error !== null) reject(error);
+        resolve({
+          response: response,
+          body: body,
+        });
+      });
+    });
+  } 
+  
+  if (typeof headers === 'function') { // backward compatibility with post(url, body, callback)
+    var temp;
+    temp = headers;
+    headers = callback;
+    callback = temp;
   }
 
   headers = headers || {};
@@ -70,6 +107,17 @@ cloudscraper.post = function(url, body, headers, callback) {
  * @param {Function} callback  function(error, response, body) {}
  */
 cloudscraper.request = function(options, callback) {
+  if (callback === undefined ) { // will return promise
+    return new Promise( function(resolve, reject) {
+      performRequest(options, function(error, response, body) {
+        if (error !== null) reject(error);
+        resolve({
+          response: response,
+          body: body,
+        });
+      });
+    });
+  }
   performRequest(options, callback);
 }
 
