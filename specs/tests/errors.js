@@ -125,7 +125,36 @@ describe('Cloudscraper', function() {
     }, headers);
 
     this.clock.tick(7000); // tick the timeout
-
   });
 
+  it('should properly handle a case when after a challenge another one is returned', function(done) {
+    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html');
+    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url);
+    var stubbed;
+
+    var pageWithCaptchaResponse = { statusCode: 200 };
+    // Cloudflare is enabled for site. It returns a page with js challenge
+    stubbed = sandbox.stub(requestDefault, 'get')
+      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .callsArgWith(1, null, response, jsChallengePage);
+
+    // Second call to request.get returns recaptcha
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: sinon.match.any,
+      headers: sinon.match.any,
+      encoding: null,
+      realEncoding: 'utf8'
+    })
+    .callsArgWith(1, null, pageWithCaptchaResponse, captchaPage);
+
+    cloudscraper.get(url, function(error, response, body) {
+      expect(error).to.be.eql({errorType: 1}); // errorType 1, means captcha is served
+      expect(body).to.be.eql(captchaPage);
+      done();
+    }, headers);
+
+    this.clock.tick(7000); // tick the timeout
+  });
 });

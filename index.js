@@ -106,7 +106,7 @@ function performRequest(options, callback) {
       setCookieAndReload(response, stringBody, options, callback);
     } else {
       // All is good
-      giveResults(options, error, response, body, callback);
+      processResponseBody(options, error, response, body, callback);
     }
   });
 }
@@ -182,6 +182,7 @@ function solveChallenge(response, body, options, callback) {
 
   // Make request with answer
   makeRequest(options, function(error, response, body) {
+
     if(error) {
       return callback({ errorType: 0, error: error }, response, body);
     }
@@ -191,10 +192,10 @@ function solveChallenge(response, body, options, callback) {
       options.url = response.headers.location;
       delete options.qs;
       makeRequest(options, function(error, response, body) {
-        giveResults(options, error, response, body, callback);
+        processResponseBody(options, error, response, body, callback);
       });
     } else {
-      giveResults(options, error, response, body, callback);
+      processResponseBody(options, error, response, body, callback);
     }
   });
 }
@@ -227,7 +228,7 @@ function setCookieAndReload(response, body, options, callback) {
     if(error) {
       return callback({ errorType: 0, error: error }, response, body);
     }
-    giveResults(options, error, response, body, callback);
+    processResponseBody(options, error, response, body, callback);
   });
 }
 
@@ -239,12 +240,19 @@ function requestMethod(method) {
   return method === 'POST' ? request.post : request.get;
 }
 
-function giveResults(options, error, response, body, callback) {
+function processResponseBody(options, error, response, body, callback) {
   if(typeof options.realEncoding === 'string') {
-    callback(error, response, body.toString(options.realEncoding));
-  } else {
-    callback(error, response, body);
+    body = body.toString(options.realEncoding);
+    // In case of real encoding, try to validate the response
+    // and find potential errors there.
+    // If encoding is not provided, return response as it is
+    if (validationError = checkForErrors(error, body)) {
+      return callback(validationError, response, body);
+    }
   }
+
+
+  callback(error, response, body);
 }
 
 module.exports = cloudscraper;

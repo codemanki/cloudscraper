@@ -98,6 +98,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [roflmuffin](https://github.com/roflmuffin)
  - [Colecf](https://github.com/Colecf)
  - [Jeongbong Seo](https://github.com/jngbng)
+ - [Kamikadze4GAME](https://github.com/Kamikadze4GAME)
 
 ## Dependencies
 * request@2.49.0 https://github.com/request/request

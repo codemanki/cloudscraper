@@ -1,6 +1,6 @@
 {
   "name": "cloudscraper",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
   "scripts": {
@@ -28,6 +28,7 @@
   "devDependencies": {
     "chai": "^1.10.0",
     "grunt": "^0.4.5",
+    "grunt-cli": "^1.2.0",
     "grunt-mocha-test": "^0.12.4",
     "mocha": "^2.0.1",
     "sinon": "^1.12.1"
