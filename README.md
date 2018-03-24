@@ -102,5 +102,4 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
 
 ## Dependencies
 * request@2.49.0 https://github.com/request/request
-* tough-cookie@0.12.1 https://github.com/goinstant/tough-cookie
 
