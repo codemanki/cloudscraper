@@ -1,9 +1,7 @@
-var vm = require('vm');
-var requestModule = require('request');
-var jar = requestModule.jar();
+const vm = require('vm');
+var request = require('request');
 
-var request      = requestModule.defaults({jar: jar}), // Cookies should be enabled
-    UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+const UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
     Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
     cloudscraper = {};
 
@@ -15,8 +13,9 @@ var request      = requestModule.defaults({jar: jar}), // Cookies should be enab
  * @param  {Map}       cookies     Map with the cookies required to execute the request{}
  */
 cloudscraper.get = function(url, callback, headers,cookies) {
+    let jar = request.jar();
     if (cookies !== null) {
-        if (cookies.constructor === Map) {
+        if (cookies.constructor instanceof Map) {
             cookies.forEach(function (value, key) {
                 jar.setCookie(request.cookie(key + '=' + value), url);
             })
@@ -24,7 +23,8 @@ cloudscraper.get = function(url, callback, headers,cookies) {
         performRequest({
             method: 'GET',
             url: url,
-            headers: headers
+            headers: headers,
+            jar: jar
         }, callback);
     }
 };
@@ -38,7 +38,8 @@ cloudscraper.get = function(url, callback, headers,cookies) {
  * @param cookies          cookies     Map with cookies required for the request
  */
 cloudscraper.post = function(url, body, callback, headers,cookies) {
-    var data = '',
+    let jar = request.jar();
+    let data = '',
         bodyType = Object.prototype.toString.call(body);
 
     if(bodyType === '[object String]') {
@@ -63,9 +64,10 @@ cloudscraper.post = function(url, body, callback, headers,cookies) {
         method: 'POST',
         body: data,
         url: url,
-        headers: headers
+        headers: headers,
+        jar: jar
     }, callback);
-}
+};
 
 /**
  * Performs get or post request with generic request options
@@ -73,14 +75,19 @@ cloudscraper.post = function(url, body, callback, headers,cookies) {
  * @param {Function} callback  function(error, response, body) {}
  */
 cloudscraper.request = function(options, callback) {
+    let jar = options.jar;
+    if(jar===null){
+        jar = request.jar();
+        options.jar = jar;
+    }
+
     performRequest(options, callback);
-}
+};
 
 function performRequest(options, callback) {
-    var method;
     options = options || {};
     options.headers = options.headers || {};
-    makeRequest = requestMethod(options.method);
+    var makeRequest = requestMethod(options.method);
 
     //Can't just do the normal options.encoding || 'utf8'
     //because null is a valid encoding.
@@ -170,7 +177,7 @@ function solveChallenge(response, body, options, callback) {
         return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
     }
 
-    challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
+    var challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
 
     challenge = challenge[1];
 
@@ -218,7 +225,6 @@ function solveChallenge(response, body, options, callback) {
 function setCookieAndReload(response, body, options, callback) {
     var challenge = body.match(/S='([^']+)'/);
     var makeRequest = requestMethod(options.method);
-
     if (!challenge) {
         return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
     }
@@ -234,7 +240,8 @@ function setCookieAndReload(response, body, options, callback) {
     };
     vm.runInNewContext(cookieSettingCode, sandbox);
     try {
-        jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
+        var tempjar = options.jar;
+        tempjar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
     } catch (err) {
         return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
     }
