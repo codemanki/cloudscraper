@@ -23,7 +23,7 @@
   "license": "MIT",
   "homepage": "https://github.com/codemanki/cloudscraper",
   "dependencies": {
-    "request": "^2.49.0"
+    "request": "^2.87.0"
   },
   "devDependencies": {
     "chai": "^1.10.0",
