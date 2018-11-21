@@ -65,6 +65,10 @@ function performRequest(options, callback) {
   var method;
   options = options || {};
   options.headers = options.headers || {};
+
+  options.headers['Cache-Control'] = options.headers['Cache-Control'] || 'private';
+  options.headers['Accept'] = options.headers['Accept'] || 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5';
+
   makeRequest = requestMethod(options.method);
 
   //Can't just do the normal options.encoding || 'utf8'

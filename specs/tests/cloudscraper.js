@@ -87,7 +87,9 @@ describe('Cloudscraper', function() {
       },
       headers: {
         'User-Agent': 'Chrome',
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': 'http://example-site.dev/path/',
+        'Cache-Control': 'private',
+        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
       },
       encoding: null,
       realEncoding: 'utf8'
@@ -126,7 +128,9 @@ describe('Cloudscraper', function() {
       },
       headers: {
         'User-Agent': 'Chrome',
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': 'http://example-site.dev/path/',
+        'Cache-Control': 'private',
+        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
       },
       encoding: null,
       realEncoding: 'utf8'
