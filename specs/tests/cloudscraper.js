@@ -147,17 +147,66 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it('should resolve 2 consequent challenges', function(done) {
+  it.only('should resolve 2 consequent challenges', function(done) {
     var jsChallengePage1 = helper.getFixture('js_challenge_03_12_2018_1.html');
     var jsChallengePage2 = helper.getFixture('js_challenge_03_12_2018_2.html');
     var responseJsChallengePage1 = helper.fakeResponseObject(503, headers, jsChallengePage1, url);
     var responseJsChallengePage2 = helper.fakeResponseObject(503, headers, jsChallengePage2, url);
     var stubbed;
 
+    // First call and CF returns a challenge
     stubbed = sandbox.stub(requestDefault, 'get')
       .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
-      .callsArgWith(1, null, responseJsChallengePage1, jsChallengePage1);
-      
+      .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
+
+    // We submit a solution to the first challenge, but CF decided to give us a second one
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: {
+        'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
+        'jschl_answer': -5.33265406 + 'example-site.dev'.length, // -5.33265406 is a answer to cloudflares js challenge in this particular case
+        'pass': '1543827239.915-44n9IE20mS'
+      },
+      headers: {
+        'User-Agent': 'Chrome',
+        'Referer': 'http://example-site.dev/path/',
+        'Cache-Control': 'private',
+        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+      },
+      encoding: null,
+      realEncoding: 'utf8'
+    })
+    .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
+
+    // We submit a solution to the second challenge and CF returns requested page
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: {
+        'jschl_vc': 'a41fee3a9f041fea01f0cbf3e8e4d29b',
+        'jschl_answer': -1.9145049856 + 'example-site.dev'.length, // 1.9145049856 is a answer to cloudflares js challenge in this particular case
+        'pass': '1543827246.024-hvxyNA3rOg'
+      },
+      headers: {
+        'User-Agent': 'Chrome',
+        'Referer': 'http://example-site.dev/path/',
+        'Cache-Control': 'private',
+        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+      },
+      encoding: null,
+      realEncoding: 'utf8'
+    })
+    .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
+
+    cloudscraper.get(url, function(error, response, body) {
+      expect(error).to.be.null();
+      expect(body).to.be.equal(requestedPage);
+      expect(response).to.be.equal(response);
+      done();
+    }, headers);
+
+    this.clock.tick(7000); // tick the timeout
   });
 
   it('should make post request with body as string', function(done) {
