@@ -150,13 +150,14 @@ describe('Cloudscraper', function() {
   it('should resolve 2 consequent challenges', function(done) {
     var jsChallengePage1 = helper.getFixture('js_challenge_03_12_2018_1.html');
     var jsChallengePage2 = helper.getFixture('js_challenge_03_12_2018_2.html');
-    var responsejsChallengePage1 = helper.fakeResponseObject(503, headers, jsChallengePage1, url);
-    var responsejsChallengePage2 = helper.fakeResponseObject(503, headers, jsChallengePage2, url);
+    var responseJsChallengePage1 = helper.fakeResponseObject(503, headers, jsChallengePage1, url);
+    var responseJsChallengePage2 = helper.fakeResponseObject(503, headers, jsChallengePage2, url);
     var stubbed;
 
     stubbed = sandbox.stub(requestDefault, 'get')
       .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
-      .callsArgWith(1, null, response, jsChallengePage);
+      .callsArgWith(1, null, responseJsChallengePage1, jsChallengePage1);
+      
   });
 
   it('should make post request with body as string', function(done) {
