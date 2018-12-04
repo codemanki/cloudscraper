@@ -53,9 +53,9 @@ describe('Cloudscraper', function() {
       .withArgs(defaultWithArgs)
       .callsArgWith(1, null, response, captchaPage);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, body, response) {
       expect(error).to.be.eql({errorType: 1}); // errorType 1, means captcha is served
-      expect(body).to.be.eql(captchaPage);
+      expect(response).to.be.eql(captchaPage);
       done();
     }, headers);
   });
@@ -68,9 +68,9 @@ describe('Cloudscraper', function() {
       .withArgs(defaultWithArgs)
       .callsArgWith(1, null, response, accessDenied);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, body, response) {
       expect(error).to.be.eql({errorType: 2, error: 1006}); // errorType 2, means inner cloudflare error
-      expect(body).to.be.eql(accessDenied);
+      expect(response).to.be.eql(accessDenied);
       done();
     }, headers);
   });
@@ -83,9 +83,9 @@ describe('Cloudscraper', function() {
       .withArgs(defaultWithArgs)
       .callsArgWith(1, null, response, undefined);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, body, response) {
       expect(error).to.be.eql({errorType: 0, error: null}); // errorType 2, means inner cloudflare error
-      expect(body).to.be.eql(undefined);
+      expect(response).to.be.eql(undefined);
       done();
     }, headers);
   });
@@ -96,9 +96,9 @@ describe('Cloudscraper', function() {
       .withArgs(defaultWithArgs)
       .callsArgWith(1, null, response, invalidChallenge);
 
-    cloudscraper.get(url, function(error, body) {
+    cloudscraper.get(url, function(error, body, response) {
       expect(error.errorType).to.be.eql(3); // errorType 3, means parsing failed
-      expect(body).to.be.eql(invalidChallenge);
+      expect(response).to.be.eql(invalidChallenge);
       done();
     }, headers);
 
@@ -151,9 +151,9 @@ describe('Cloudscraper', function() {
     })
     .callsArgWith(1, null, pageWithCaptchaResponse, captchaPage);
 
-    cloudscraper.get(url, function(error, response, body) {
+    cloudscraper.get(url, function(error, body, response) {
       expect(error).to.be.eql({errorType: 1}); // errorType 1, means captcha is served
-      expect(body).to.be.eql(captchaPage);
+      expect(response).to.be.eql(captchaPage);
       done();
     }, headers);
 

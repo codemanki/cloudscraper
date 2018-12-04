@@ -160,7 +160,7 @@ describe('Cloudscraper', function() {
     // First call and CF returns a challenge
     stubbed = sandbox.stub(requestDefault, 'get')
       .withArgs(defaultWithArgs)
-      .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
+      .callsArgWith(1, null, responseJsChallengePage1, jsChallengePage1);
 
     // We submit a solution to the first challenge, but CF decided to give us a second one
     stubbed.withArgs({
@@ -202,7 +202,7 @@ describe('Cloudscraper', function() {
       realEncoding: 'utf8',
       followAllRedirects: true
     })
-    .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
+    .callsArgWith(1, null, responseJsChallengePage2, requestedPage);
 
     cloudscraper.get(url, function(error, response, body) {
       expect(error).to.be.null();
@@ -211,7 +211,7 @@ describe('Cloudscraper', function() {
       done();
     }, headers);
 
-    this.clock.tick(7000); // tick the timeout
+    this.clock.tick(14000); // tick the timeout
   });
 
   it('should make post request with body as string', function(done) {

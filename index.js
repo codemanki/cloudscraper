@@ -88,32 +88,40 @@ function performRequest(options, callback) {
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
 
   makeRequest(options, function(error, response, body) {
-    var validationError;
-    var stringBody;
-
-    if (error || !body || !body.toString) {
-      return callback({ errorType: 0, error: error }, body, response);
-    }
-
-    stringBody = body.toString('utf8');
-
-    if (validationError = checkForErrors(error, stringBody)) {
-      return callback(validationError, body, response);
-    }
-
-    // If body contains specified string, solve challenge
-    if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
-      setTimeout(function() {
-        solveChallenge(response, stringBody, options, callback);
-      }, Timeout);
-    } else if (stringBody.indexOf('You are being redirected') !== -1 ||
-               stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
-      setCookieAndReload(response, stringBody, options, callback);
-    } else {
-      // All is good
-      processResponseBody(options, error, response, body, callback);
-    }
+    processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
+}
+
+function processRequestResponse(options, requestResult, callback) {
+  var error = requestResult.error;
+  var response = requestResult.response;
+  var body = requestResult.body;
+  var validationError;
+  var stringBody;
+
+  if (error || !body || !body.toString) {
+    return callback({ errorType: 0, error: error }, response, body);
+  }
+
+  stringBody = body.toString('utf8');
+
+  if (validationError = checkForErrors(error, stringBody)) {
+    return callback(validationError, response, body);
+  }
+
+  // If body contains specified string, solve challenge
+  if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
+    setTimeout(function() {
+      solveChallenge(response, stringBody, options, callback);
+    }, Timeout);
+  } else if (stringBody.indexOf('You are being redirected') !== -1 ||
+             stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
+
+    setCookieAndReload(response, stringBody, options, callback);
+  } else {
+    // All is good
+    processResponseBody(options, error, response, body, callback);
+  }
 }
 
 function checkForErrors(error, body) {
@@ -139,7 +147,6 @@ function checkForErrors(error, body) {
   return false;
 }
 
-
 function solveChallenge(response, body, options, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var host = response.request.host;
@@ -149,7 +156,7 @@ function solveChallenge(response, body, options, callback) {
   var answerUrl;
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, response, body);
   }
 
   jsChlVc = challenge[1];
@@ -157,7 +164,7 @@ function solveChallenge(response, body, options, callback) {
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, response, body);
   }
 
   challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
@@ -176,7 +183,7 @@ function solveChallenge(response, body, options, callback) {
       'pass': challenge_pass
     };
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
@@ -187,12 +194,7 @@ function solveChallenge(response, body, options, callback) {
 
   // Make request with answer
   makeRequest(options, function(error, response, body) {
-
-    if(error) {
-      return callback({ errorType: 0, error: error }, response, body);
-    }
-
-    processResponseBody(options, error, response, body, callback);
+    processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
 }
 
@@ -201,7 +203,7 @@ function setCookieAndReload(response, body, options, callback) {
   var makeRequest = requestMethod(options.method);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, response, body);
   }
 
   var base64EncodedCode = challenge[1];
@@ -219,14 +221,11 @@ function setCookieAndReload(response, body, options, callback) {
   try {
     jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
   makeRequest(options, function(error, response, body) {
-    if(error) {
-      return callback({ errorType: 0, error: error }, response, body);
-    }
-    processResponseBody(options, error, response, body, callback);
+    processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
 }
 
