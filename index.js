@@ -2,10 +2,10 @@ var vm = require('vm');
 var requestModule = require('request');
 var jar = requestModule.jar();
 
-var request      = requestModule.defaults({jar: jar}), // Cookies should be enabled
-    UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
-    Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
-    cloudscraper = {};
+var request      = requestModule.defaults({jar: jar}); // Cookies should be enabled
+var UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36';
+var Timeout      = 6000; // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
+var cloudscraper = {};
 
 /**
  * Performs get request to url with headers.
@@ -30,8 +30,8 @@ cloudscraper.get = function(url, callback, headers) {
  * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
  */
 cloudscraper.post = function(url, body, callback, headers) {
-  var data = '',
-      bodyType = Object.prototype.toString.call(body);
+  var data = '';
+  var bodyType = Object.prototype.toString.call(body);
 
   if(bodyType === '[object String]') {
     data = body;
@@ -141,12 +141,12 @@ function checkForErrors(error, body) {
 
 
 function solveChallenge(response, body, options, callback) {
-  var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
-      host = response.request.host,
-      makeRequest = requestMethod(options.method),
-      jsChlVc,
-      answerResponse,
-      answerUrl;
+  var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
+  var host = response.request.host;
+  var makeRequest = requestMethod(options.method);
+  var jsChlVc;
+  var answerResponse;
+  var answerUrl;
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
@@ -191,6 +191,7 @@ function solveChallenge(response, body, options, callback) {
     if(error) {
       return callback({ errorType: 0, error: error }, response, body);
     }
+
     processResponseBody(options, error, response, body, callback);
   });
 }
@@ -212,7 +213,9 @@ function setCookieAndReload(response, body, options, callback) {
     },
     document: {}
   };
+
   vm.runInNewContext(cookieSettingCode, sandbox);
+
   try {
     jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
