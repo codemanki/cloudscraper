@@ -94,7 +94,8 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [ ] Support cookies, so challenge can be solved once per session
  - [x] Support page with simple redirects
  - [x] Add proper testing
- - [ ] Remove manual 302 processing, replace with `followAllRedirects` param
+ - [x] Remove manual 302 processing, replace with `followAllRedirects` param
+ - [ ] Set a limit of recursive calls, to prevent many requests to be done
  - [ ] Parse out the timeout from chalenge page
  - [ ] Support recaptcha solving
  - [ ] Promisification
