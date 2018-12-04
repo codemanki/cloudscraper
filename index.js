@@ -191,17 +191,7 @@ function solveChallenge(response, body, options, callback) {
     if(error) {
       return callback({ errorType: 0, error: error }, response, body);
     }
-     // processResponseBody(options, error, response, body, callback);
-      if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
-                                        //by default, but for some reason it's not
-        options.url = response.headers.location;
-        delete options.qs;
-        makeRequest(options, function(error, response, body) {
-          processResponseBody(options, error, response, body, callback);
-        });
-      } else {
-        processResponseBody(options, error, response, body, callback);
-      }
+    processResponseBody(options, error, response, body, callback);
   });
 }
 
