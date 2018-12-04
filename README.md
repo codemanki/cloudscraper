@@ -56,6 +56,7 @@ A generic request can be made with `cloudscraper.request(options, callback)`. Th
 cloudscraper.request({method: 'GET',
                       url:'http://website.com/image',
                       encoding: null,
+                      followAllRedirects: true, // mandatory for successful challenge solution
                       }, function(err, response, body) {
                       //body is now a buffer object instead of a string
 });

@@ -17,7 +17,8 @@ cloudscraper.get = function(url, callback, headers) {
   performRequest({
     method: 'GET',
     url: url,
-    headers: headers
+    headers: headers,
+    followAllRedirects: true
   }, callback);
 };
 
@@ -48,7 +49,8 @@ cloudscraper.post = function(url, body, callback, headers) {
     method: 'POST',
     body: data,
     url: url,
-    headers: headers
+    headers: headers,
+    followAllRedirects: true
   }, callback);
 }
 
@@ -62,7 +64,6 @@ cloudscraper.request = function(options, callback) {
 }
 
 function performRequest(options, callback) {
-  var method;
   options = options || {};
   options.headers = options.headers || {};
 
@@ -103,7 +104,7 @@ function performRequest(options, callback) {
     // If body contains specified string, solve challenge
     if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
       setTimeout(function() {
-        return solveChallenge(response, stringBody, options, callback);
+        solveChallenge(response, stringBody, options, callback);
       }, Timeout);
     } else if (stringBody.indexOf('You are being redirected') !== -1 ||
                stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
@@ -190,17 +191,17 @@ function solveChallenge(response, body, options, callback) {
     if(error) {
       return callback({ errorType: 0, error: error }, response, body);
     }
-
-    if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
-                                      //by default, but for some reason it's not
-      options.url = response.headers.location;
-      delete options.qs;
-      makeRequest(options, function(error, response, body) {
+     // processResponseBody(options, error, response, body, callback);
+      if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
+                                        //by default, but for some reason it's not
+        options.url = response.headers.location;
+        delete options.qs;
+        makeRequest(options, function(error, response, body) {
+          processResponseBody(options, error, response, body, callback);
+        });
+      } else {
         processResponseBody(options, error, response, body, callback);
-      });
-    } else {
-      processResponseBody(options, error, response, body, callback);
-    }
+      }
   });
 }
 

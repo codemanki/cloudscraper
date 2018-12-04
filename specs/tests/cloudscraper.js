@@ -1,18 +1,19 @@
-var helper       = require('../spec_helper'),
-    request      = require('request');
+var helper       = require('../spec_helper');
+var request      = require('request');
 
 describe('Cloudscraper', function() {
-  var sandbox,
-      url             = 'http://example-site.dev/path/',
-      requestedPage   = helper.getFixture('requested_page.html'),
-      headers         = {'User-Agent': 'Chrome'},
+  var requestedPage   = helper.getFixture('requested_page.html');
+  var url = helper.testDefaults.url;
+  var headers = helper.testDefaults.headers;
 
-      // Since request.jar returns new cookie jar instance, create one global instance and then stub it in beforeEach
-      jar             = request.jar(),
-      // Since request.defaults returns new wrapper, create one global instance and then stub it in beforeEach
-      requestDefault  = request.defaults({jar: jar}),
-      cloudscraper;
+  // Since request.jar returns new cookie jar instance, create one global instance and then stub it in beforeEach
+  var jar             = request.jar();
+  // Since request.defaults returns new wrapper, create one global instance and then stub it in beforeEach
+  var requestDefault  = request.defaults({jar: jar});
+  var defaultWithArgs = helper.requestParams({});
 
+  var cloudscraper;
+  var sandbox;
   before(function() {
     helper.dropCache();
   });
@@ -36,7 +37,7 @@ describe('Cloudscraper', function() {
 
     // Stub first call, which request makes to page. It should return requested page
     sandbox.stub(requestDefault, 'get')
-      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .withArgs(helper.requestParams({}))
       .callsArgWith(1, null, expectedResponse, requestedPage);
 
     cloudscraper.get(url, function(error, response, body) {
@@ -53,7 +54,7 @@ describe('Cloudscraper', function() {
     var pageWithCaptcha = helper.getFixture('page_with_recaptcha.html');
 
     sandbox.stub(requestDefault, 'get')
-      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .withArgs(defaultWithArgs)
       .callsArgWith(1, null, expectedResponse, pageWithCaptcha);
 
     cloudscraper.get(url, function(error, response, body) {
@@ -66,13 +67,13 @@ describe('Cloudscraper', function() {
   });
 
   it('should resolve challenge (version as on 21.05.2015) and then return page', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html'),
-        response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
-        stubbed;
+    var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html');
+    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url);
+    var stubbed;
 
     // Cloudflare is enabled for site. It returns a page with js challenge
     stubbed = sandbox.stub(requestDefault, 'get')
-      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .withArgs(defaultWithArgs)
       .callsArgWith(1, null, response, jsChallengePage);
 
     // Second call to request.get will have challenge solution
@@ -92,7 +93,8 @@ describe('Cloudscraper', function() {
         'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
       },
       encoding: null,
-      realEncoding: 'utf8'
+      realEncoding: 'utf8',
+      followAllRedirects: true
     })
     .callsArgWith(1, null, response, requestedPage);
 
@@ -107,13 +109,13 @@ describe('Cloudscraper', function() {
   });
 
   it('should resolve challenge (version as on 09.06.2016) and then return page', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html'),
-        response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
-        stubbed;
+    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html');
+    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url);
+    var stubbed;
 
     // Cloudflare is enabled for site. It returns a page with js challenge
     stubbed = sandbox.stub(requestDefault, 'get')
-      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .withArgs(defaultWithArgs)
       .callsArgWith(1, null, response, jsChallengePage);
 
     // Second call to request.get will have challenge solution
@@ -133,7 +135,8 @@ describe('Cloudscraper', function() {
         'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
       },
       encoding: null,
-      realEncoding: 'utf8'
+      realEncoding: 'utf8',
+      followAllRedirects: true
     })
     .callsArgWith(1, null, response, requestedPage);
 
@@ -147,7 +150,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it.only('should resolve 2 consequent challenges', function(done) {
+  it('should resolve 2 consequent challenges', function(done) {
     var jsChallengePage1 = helper.getFixture('js_challenge_03_12_2018_1.html');
     var jsChallengePage2 = helper.getFixture('js_challenge_03_12_2018_2.html');
     var responseJsChallengePage1 = helper.fakeResponseObject(503, headers, jsChallengePage1, url);
@@ -156,7 +159,7 @@ describe('Cloudscraper', function() {
 
     // First call and CF returns a challenge
     stubbed = sandbox.stub(requestDefault, 'get')
-      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: 'utf8'})
+      .withArgs(defaultWithArgs)
       .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
 
     // We submit a solution to the first challenge, but CF decided to give us a second one
@@ -175,7 +178,8 @@ describe('Cloudscraper', function() {
         'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
       },
       encoding: null,
-      realEncoding: 'utf8'
+      realEncoding: 'utf8',
+      followAllRedirects: true
     })
     .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
 
@@ -195,7 +199,8 @@ describe('Cloudscraper', function() {
         'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
       },
       encoding: null,
-      realEncoding: 'utf8'
+      realEncoding: 'utf8',
+      followAllRedirects: true
     })
     .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
 
@@ -210,9 +215,9 @@ describe('Cloudscraper', function() {
   });
 
   it('should make post request with body as string', function(done) {
-    var expectedResponse = { statusCode: 200 },
-        body = 'form-data-body',
-        postHeaders = headers;
+    var expectedResponse = { statusCode: 200 };
+    var body = 'form-data-body';
+    var postHeaders = headers;
 
     postHeaders['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
     postHeaders['Content-Length'] = body.length;
@@ -220,7 +225,7 @@ describe('Cloudscraper', function() {
 
     // Stub first call, which request makes to page. It should return requested page
     sandbox.stub(requestDefault, 'post')
-      .withArgs({method: 'POST', url: url, headers: postHeaders, body: body, encoding: null, realEncoding: 'utf8'})
+      .withArgs(helper.requestParams({url: url, method: 'POST', headers: postHeaders, body: body}))
       .callsArgWith(1, null, expectedResponse, requestedPage);
 
     cloudscraper.post(url, body, function(error, response, body) {
@@ -232,17 +237,17 @@ describe('Cloudscraper', function() {
   });
 
   it('should make post request with body as object', function(done) {
-    var expectedResponse = { statusCode: 200 },
-        rawBody = {a: '1', b: 2},
-        encodedBody = 'a=1&b=2',
-        postHeaders = headers;
+    var expectedResponse = { statusCode: 200 };
+    var rawBody = {a: '1', b: 2};
+    var encodedBody = 'a=1&b=2';
+    var postHeaders = headers;
 
     postHeaders['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
     postHeaders['Content-Length'] = encodedBody.length;
 
     // Stub first call, which request makes to page. It should return requested page
     sandbox.stub(requestDefault, 'post')
-      .withArgs({method: 'POST', url: url, headers: postHeaders, body: encodedBody, encoding: null, realEncoding: 'utf8'})
+      .withArgs(helper.requestParams({url: url, method: 'POST', headers: postHeaders, body: encodedBody}))
       .callsArgWith(1, null, expectedResponse, requestedPage);
 
     cloudscraper.post(url, rawBody, function(error, response, body) {
@@ -256,16 +261,17 @@ describe('Cloudscraper', function() {
   it('should return raw data when encoding is null', function(done) {
     var expectedResponse = { statusCode: 200 };
     var requestedData = new Buffer('R0lGODlhDwAPAKECAAAAzMzM/////wAAACwAAAAADwAPAAACIISPeQHsrZ5ModrLlN48CXF8m2iQ3YmmKqVlRtW4MLwWACH+H09wdGltaXplZCBieSBVbGVhZCBTbWFydFNhdmVyIQAAOw==', 'base64');
-
+    
     sandbox.stub(requestDefault, 'get')
-      .withArgs({method: 'GET', url: url, headers: headers, encoding: null, realEncoding: null})
+      .withArgs(helper.requestParams({url: url, headers: headers, encoding: null, realEncoding: null}))
       .callsArgWith(1, null, expectedResponse, requestedData);
 
     var options = {
       method: 'GET',
       url: url,
       encoding: null,
-      headers: headers
+      headers: headers,
+      followAllRedirects: true
     };
 
     cloudscraper.request(options, function(error, response, body) {
@@ -277,9 +283,8 @@ describe('Cloudscraper', function() {
   });
 
   it('should set the given cookie and then return page', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_cookie.html'),
-        response = helper.fakeResponseObject(200, headers, jsChallengePage, url),
-        stubbed;
+    var jsChallengePage = helper.getFixture('js_challenge_cookie.html');
+    var response = helper.fakeResponseObject(200, headers, jsChallengePage, url);
 
     // Cloudflare is enabled for site.
     // It returns a redirecting page if a (session) cookie is unset.
