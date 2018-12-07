@@ -117,9 +117,10 @@ function processRequestResponse(options, requestResult, callback) {
   isRedirectChallengePresent = stringBody.indexOf('You are being redirected') !== -1 || stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
   isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
 
-  if(!isTargetPage && options.challengesToSolve == 0) {
+  if(isChallengePresent && options.challengesToSolve == 0) {
     return callback({ errorType: 4 }, response, body);
   }
+
   // If body contains specified string, solve challenge
   if (isChallengePresent) {
     setTimeout(function() {

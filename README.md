@@ -97,6 +97,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [x] Support page with simple redirects
  - [x] Add proper testing
  - [x] Remove manual 302 processing, replace with `followAllRedirects` param
+ - [ ] Reoder the arguments in get/post/request methods and allow custom options to be passed in
  - [ ] Expose solve methods to use them independently
  - [ ] Support recaptcha solving
  - [ ] Promisification
