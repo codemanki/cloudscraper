@@ -94,7 +94,8 @@ describe('Cloudscraper', function() {
       },
       encoding: null,
       realEncoding: 'utf8',
-      followAllRedirects: true
+      followAllRedirects: true,
+      challengesToSolve: 2
     })
     .callsArgWith(1, null, response, requestedPage);
 
@@ -136,7 +137,8 @@ describe('Cloudscraper', function() {
       },
       encoding: null,
       realEncoding: 'utf8',
-      followAllRedirects: true
+      followAllRedirects: true,
+      challengesToSolve: 2
     })
     .callsArgWith(1, null, response, requestedPage);
 
@@ -179,7 +181,8 @@ describe('Cloudscraper', function() {
       },
       encoding: null,
       realEncoding: 'utf8',
-      followAllRedirects: true
+      followAllRedirects: true,
+      challengesToSolve: 2
     })
     .callsArgWith(1, null, responseJsChallengePage2, jsChallengePage2);
 
@@ -200,7 +203,8 @@ describe('Cloudscraper', function() {
       },
       encoding: null,
       realEncoding: 'utf8',
-      followAllRedirects: true
+      followAllRedirects: true,
+      challengesToSolve: 1
     })
     .callsArgWith(1, null, responseJsChallengePage2, requestedPage);
 

@@ -56,6 +56,7 @@ A generic request can be made with `cloudscraper.request(options, callback)`. Th
 cloudscraper.request({method: 'GET',
                       url:'http://website.com/image',
                       encoding: null,
+                      challengesToSolve: 3, // optional, if CF returns challenge after challenge, how many to solve before failing
                       followAllRedirects: true, // mandatory for successful challenge solution
                       }, function(err, response, body) {
                       //body is now a buffer object instead of a string
@@ -73,6 +74,7 @@ Where `errorType` can be following:
  - `1` cloudflare returned captcha. Nothing to do here. Bad luck
  - `2` cloudflare returned page with some inner error. `error` will be `Number` within this range `1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008`. See more [here](https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages)
  - `3` this error is returned when library failed to parse and solve js challenge. `error` will be `String` with some details. :warning: :warning: __Most likely it means that cloudflare have changed their js challenge.__
+ - `4` CF went into a loop and started to return challenge after challenge. If number of solved challenges is greater than `3` and another challenge is returned, throw an error
 
 
 Running tests
@@ -95,8 +97,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [x] Support page with simple redirects
  - [x] Add proper testing
  - [x] Remove manual 302 processing, replace with `followAllRedirects` param
- - [ ] Set a limit of recursive calls, to prevent many requests to be done
- - [ ] Parse out the timeout from chalenge page
+ - [ ] Expose solve methods to use them independently
  - [ ] Support recaptcha solving
  - [ ] Promisification
 

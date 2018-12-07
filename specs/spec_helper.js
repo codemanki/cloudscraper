@@ -38,7 +38,8 @@ module.exports = {
       headers: testDefaults.headers,
       encoding: null, 
       realEncoding: 'utf8', 
-      followAllRedirects: true
+      followAllRedirects: true,
+      challengesToSolve: 3
     }, params);
   }
 };

@@ -6,6 +6,7 @@ var request      = requestModule.defaults({jar: jar}); // Cookies should be enab
 var UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36';
 var Timeout      = 6000; // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
 var cloudscraper = {};
+var MaxChallengesToSolve = 3; // Support only this max challenges in row. If CF returns more, throw an error
 
 /**
  * Performs get request to url with headers.
@@ -17,8 +18,7 @@ cloudscraper.get = function(url, callback, headers) {
   performRequest({
     method: 'GET',
     url: url,
-    headers: headers,
-    followAllRedirects: true
+    headers: headers
   }, callback);
 };
 
@@ -49,8 +49,7 @@ cloudscraper.post = function(url, body, callback, headers) {
     method: 'POST',
     body: data,
     url: url,
-    headers: headers,
-    followAllRedirects: true
+    headers: headers
   }, callback);
 }
 
@@ -86,7 +85,9 @@ function performRequest(options, callback) {
   }
 
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
-
+  options.challengesToSolve = options.challengesToSolve || MaxChallengesToSolve; // Might not be the best way how to pass this variable
+  options.followAllRedirects = options.followAllRedirects === undefined ? true : options.followAllRedirects;
+  
   makeRequest(options, function(error, response, body) {
     processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
@@ -98,6 +99,9 @@ function processRequestResponse(options, requestResult, callback) {
   var body = requestResult.body;
   var validationError;
   var stringBody;
+  var isChallengePresent;
+  var isRedirectChallengePresent;
+  var isTargetPage; // Meaning we have finally reached the target page
 
   if (error || !body || !body.toString) {
     return callback({ errorType: 0, error: error }, response, body);
@@ -109,14 +113,20 @@ function processRequestResponse(options, requestResult, callback) {
     return callback(validationError, response, body);
   }
 
+  isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
+  isRedirectChallengePresent = stringBody.indexOf('You are being redirected') !== -1 || stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
+  isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
+
+  if(!isTargetPage && options.challengesToSolve == 0) {
+    return callback({ errorType: 4 }, response, body);
+  }
+
   // If body contains specified string, solve challenge
-  if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
+  if (isChallengePresent) {
     setTimeout(function() {
       solveChallenge(response, stringBody, options, callback);
     }, Timeout);
-  } else if (stringBody.indexOf('You are being redirected') !== -1 ||
-             stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
-
+  } else if (isRedirectChallengePresent) {
     setCookieAndReload(response, stringBody, options, callback);
   } else {
     // All is good
@@ -191,6 +201,7 @@ function solveChallenge(response, body, options, callback) {
   options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
   options.url = answerUrl;
   options.qs = answerResponse;
+  options.challengesToSolve = options.challengesToSolve - 1;
 
   // Make request with answer
   makeRequest(options, function(error, response, body) {
@@ -223,6 +234,8 @@ function setCookieAndReload(response, body, options, callback) {
   } catch (err) {
     return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
+
+  options.challengesToSolve = options.challengesToSolve - 1;
 
   makeRequest(options, function(error, response, body) {
     processRequestResponse(options, {error: error, response: response, body: body}, callback);

@@ -147,7 +147,8 @@ describe('Cloudscraper', function() {
       headers: sinon.match.any,
       encoding: null,
       realEncoding: 'utf8',
-      followAllRedirects: true
+      followAllRedirects: true,
+      challengesToSolve: 2
     })
     .callsArgWith(1, null, pageWithCaptchaResponse, captchaPage);
 
