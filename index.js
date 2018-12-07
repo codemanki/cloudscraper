@@ -87,7 +87,7 @@ function performRequest(options, callback) {
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
   options.challengesToSolve = options.challengesToSolve || MaxChallengesToSolve; // Might not be the best way how to pass this variable
   options.followAllRedirects = options.followAllRedirects === undefined ? true : options.followAllRedirects;
-  
+
   makeRequest(options, function(error, response, body) {
     processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
@@ -120,7 +120,6 @@ function processRequestResponse(options, requestResult, callback) {
   if(!isTargetPage && options.challengesToSolve == 0) {
     return callback({ errorType: 4 }, response, body);
   }
-
   // If body contains specified string, solve challenge
   if (isChallengePresent) {
     setTimeout(function() {

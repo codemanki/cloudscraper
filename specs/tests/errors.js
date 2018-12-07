@@ -74,7 +74,65 @@ describe('Cloudscraper', function() {
       done();
     }, headers);
   });
+  
+  it('should return errior if cf presented more than 3 challenges in a row', function(done) {
+    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html');
+    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url);
+    var stubbed;
 
+    var pageWithCaptchaResponse = { statusCode: 200 };
+    // Cloudflare is enabled for site. It returns a page with js challenge
+    stubbed = sandbox.stub(requestDefault, 'get')
+      .withArgs(helper.requestParams({url: url, headers: headers}))
+      .callsArgWith(1, null, response, jsChallengePage);
+
+    // Second call to request.get returns challenge
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: sinon.match.any,
+      headers: sinon.match.any,
+      encoding: null,
+      realEncoding: 'utf8',
+      followAllRedirects: true,
+      challengesToSolve: 2
+    })
+    .callsArgWith(1, null, response, jsChallengePage);
+
+    // Third call to request.get returns challenge
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: sinon.match.any,
+      headers: sinon.match.any,
+      encoding: null,
+      realEncoding: 'utf8',
+      followAllRedirects: true,
+      challengesToSolve: 1
+    })
+    .callsArgWith(1, null, response, jsChallengePage);
+
+    // Fourth call to request.get still returns a challenge
+    stubbed.withArgs({
+      method: 'GET',
+      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: sinon.match.any,
+      headers: sinon.match.any,
+      encoding: null,
+      realEncoding: 'utf8',
+      followAllRedirects: true,
+      challengesToSolve: 0
+    })
+    .callsArgWith(1, null, response, jsChallengePage);
+
+    cloudscraper.get(url, function(error, body, response) {
+      expect(error).to.be.eql({errorType: 4}); // errorType 1, means captcha is served
+      expect(response).to.be.eql(jsChallengePage);
+      done();
+    }, headers);
+
+    this.clock.tick(200000); // tick the timeout
+  });
   it('should return error if body is undefined', function(done){
     //https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     var response = { statusCode: 500 };
