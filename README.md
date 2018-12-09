@@ -97,6 +97,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [x] Support page with simple redirects
  - [x] Add proper testing
  - [x] Remove manual 302 processing, replace with `followAllRedirects` param
+ - [ ] Parse out the timeout from chalenge page
  - [ ] Reoder the arguments in get/post/request methods and allow custom options to be passed in
  - [ ] Expose solve methods to use them independently
  - [ ] Support recaptcha solving
@@ -109,5 +110,5 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [Kamikadze4GAME](https://github.com/Kamikadze4GAME)
 
 ## Dependencies
-* request@2.49.0 https://github.com/request/request
+* request https://github.com/request/request
 
