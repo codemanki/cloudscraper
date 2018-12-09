@@ -1,6 +1,6 @@
 {
   "name": "cloudscraper",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
   "scripts": {

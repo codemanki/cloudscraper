@@ -2,10 +2,11 @@ var vm = require('vm');
 var requestModule = require('request');
 var jar = requestModule.jar();
 
-var request      = requestModule.defaults({jar: jar}), // Cookies should be enabled
-    UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
-    Timeout      = 6000, // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
-    cloudscraper = {};
+var request      = requestModule.defaults({jar: jar}); // Cookies should be enabled
+var UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36';
+var Timeout      = 6000; // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
+var cloudscraper = {};
+var MaxChallengesToSolve = 3; // Support only this max challenges in row. If CF returns more, throw an error
 
 /**
  * Performs get request to url with headers.
@@ -29,8 +30,8 @@ cloudscraper.get = function(url, callback, headers) {
  * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
  */
 cloudscraper.post = function(url, body, callback, headers) {
-  var data = '',
-      bodyType = Object.prototype.toString.call(body);
+  var data = '';
+  var bodyType = Object.prototype.toString.call(body);
 
   if(bodyType === '[object String]') {
     data = body;
@@ -62,7 +63,6 @@ cloudscraper.request = function(options, callback) {
 }
 
 function performRequest(options, callback) {
-  var method;
   options = options || {};
   options.headers = options.headers || {};
 
@@ -85,34 +85,53 @@ function performRequest(options, callback) {
   }
 
   options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
+  options.challengesToSolve = options.challengesToSolve || MaxChallengesToSolve; // Might not be the best way how to pass this variable
+  options.followAllRedirects = options.followAllRedirects === undefined ? true : options.followAllRedirects;
 
   makeRequest(options, function(error, response, body) {
-    var validationError;
-    var stringBody;
-
-    if (error || !body || !body.toString) {
-      return callback({ errorType: 0, error: error }, body, response);
-    }
-
-    stringBody = body.toString('utf8');
-
-    if (validationError = checkForErrors(error, stringBody)) {
-      return callback(validationError, body, response);
-    }
-
-    // If body contains specified string, solve challenge
-    if (stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1) {
-      setTimeout(function() {
-        return solveChallenge(response, stringBody, options, callback);
-      }, Timeout);
-    } else if (stringBody.indexOf('You are being redirected') !== -1 ||
-               stringBody.indexOf('sucuri_cloudproxy_js') !== -1) {
-      setCookieAndReload(response, stringBody, options, callback);
-    } else {
-      // All is good
-      processResponseBody(options, error, response, body, callback);
-    }
+    processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
+}
+
+function processRequestResponse(options, requestResult, callback) {
+  var error = requestResult.error;
+  var response = requestResult.response;
+  var body = requestResult.body;
+  var validationError;
+  var stringBody;
+  var isChallengePresent;
+  var isRedirectChallengePresent;
+  var isTargetPage; // Meaning we have finally reached the target page
+
+  if (error || !body || !body.toString) {
+    return callback({ errorType: 0, error: error }, response, body);
+  }
+
+  stringBody = body.toString('utf8');
+
+  if (validationError = checkForErrors(error, stringBody)) {
+    return callback(validationError, response, body);
+  }
+
+  isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
+  isRedirectChallengePresent = stringBody.indexOf('You are being redirected') !== -1 || stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
+  isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
+
+  if(isChallengePresent && options.challengesToSolve == 0) {
+    return callback({ errorType: 4 }, response, body);
+  }
+
+  // If body contains specified string, solve challenge
+  if (isChallengePresent) {
+    setTimeout(function() {
+      solveChallenge(response, stringBody, options, callback);
+    }, Timeout);
+  } else if (isRedirectChallengePresent) {
+    setCookieAndReload(response, stringBody, options, callback);
+  } else {
+    // All is good
+    processResponseBody(options, error, response, body, callback);
+  }
 }
 
 function checkForErrors(error, body) {
@@ -138,17 +157,16 @@ function checkForErrors(error, body) {
   return false;
 }
 
-
 function solveChallenge(response, body, options, callback) {
-  var challenge = body.match(/name="jschl_vc" value="(\w+)"/),
-      host = response.request.host,
-      makeRequest = requestMethod(options.method),
-      jsChlVc,
-      answerResponse,
-      answerUrl;
+  var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
+  var host = response.request.host;
+  var makeRequest = requestMethod(options.method);
+  var jsChlVc;
+  var answerResponse;
+  var answerUrl;
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, response, body);
   }
 
   jsChlVc = challenge[1];
@@ -156,7 +174,7 @@ function solveChallenge(response, body, options, callback) {
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, response, body);
   }
 
   challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
@@ -175,7 +193,7 @@ function solveChallenge(response, body, options, callback) {
       'pass': challenge_pass
     };
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
@@ -183,24 +201,11 @@ function solveChallenge(response, body, options, callback) {
   options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
   options.url = answerUrl;
   options.qs = answerResponse;
+  options.challengesToSolve = options.challengesToSolve - 1;
 
   // Make request with answer
   makeRequest(options, function(error, response, body) {
-
-    if(error) {
-      return callback({ errorType: 0, error: error }, response, body);
-    }
-
-    if(response.statusCode === 302) { //occurrs when posting. request is supposed to auto-follow these
-                                      //by default, but for some reason it's not
-      options.url = response.headers.location;
-      delete options.qs;
-      makeRequest(options, function(error, response, body) {
-        processResponseBody(options, error, response, body, callback);
-      });
-    } else {
-      processResponseBody(options, error, response, body, callback);
-    }
+    processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
 }
 
@@ -209,7 +214,7 @@ function setCookieAndReload(response, body, options, callback) {
   var makeRequest = requestMethod(options.method);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, body, response);
+    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, response, body);
   }
 
   var base64EncodedCode = challenge[1];
@@ -221,18 +226,19 @@ function setCookieAndReload(response, body, options, callback) {
     },
     document: {}
   };
+
   vm.runInNewContext(cookieSettingCode, sandbox);
+
   try {
     jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, body, response);
+    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
+  options.challengesToSolve = options.challengesToSolve - 1;
+
   makeRequest(options, function(error, response, body) {
-    if(error) {
-      return callback({ errorType: 0, error: error }, response, body);
-    }
-    processResponseBody(options, error, response, body, callback);
+    processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
 }
 
