@@ -4,7 +4,8 @@
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
   "scripts": {
-    "test": "grunt"
+    "test": "grunt",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
