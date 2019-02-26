@@ -3,6 +3,8 @@ cloudscraper
 
 Node.js library to bypass cloudflare's anti-ddos page.
 
+[![js-semistandard-style](https://cdn.rawgit.com/flet/semistandard/master/badge.svg)](https://github.com/Flet/semistandard)
+
 This library is a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape) with couple enhancements and test cases ;)
 . All grats to its author \m/
 

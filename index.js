@@ -51,7 +51,7 @@ cloudscraper.post = function(url, body, callback, headers) {
     url: url,
     headers: headers
   }, callback);
-}
+};
 
 /**
  * Performs get or post request with generic request options
@@ -60,7 +60,7 @@ cloudscraper.post = function(url, body, callback, headers) {
  */
 cloudscraper.request = function(options, callback) {
   performRequest(options, callback);
-}
+};
 
 function performRequest(options, callback) {
   options = options || {};
