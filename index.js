@@ -1,94 +1,62 @@
 var vm = require('vm');
 var requestModule = require('request');
-var jar = requestModule.jar();
 
-var request      = requestModule.defaults({jar: jar}); // Cookies should be enabled
-var UserAgent    = 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36';
-var Timeout      = 6000; // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
-var cloudscraper = {};
-var MaxChallengesToSolve = 3; // Support only this max challenges in row. If CF returns more, throw an error
+var originalDefaults = requestModule.defaults;
 
-/**
- * Performs get request to url with headers.
- * @param  {String}    url
- * @param  {Function}  callback    function(error, response, body) {}
- * @param  {Object}    headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
- */
-cloudscraper.get = function(url, callback, headers) {
-  performRequest({
-    method: 'GET',
-    url: url,
-    headers: headers
-  }, callback);
-};
+module.exports = defaults.call(requestModule, {
+  // Cookies should be enabled
+  jar: requestModule.jar(),
+  headers: {
+    'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+    'Cache-Control': 'private',
+    'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+  },
+  // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
+  cloudflareTimeout: 6000,
+  // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
+  followAllRedirects: true,
+  // Support only this max challenges in row. If CF returns more, throw an error
+  challengesToSolve: 3
+});
 
-/**
- * Performs post request to url with headers.
- * @param  {String}        url
- * @param  {String|Object} body        Will be passed as form data
- * @param  {Function}      callback    function(error, response, body) {}
- * @param  {Object}        headers     Hash with headers, e.g. {'Referer': 'http://google.com', 'User-Agent': '...'}
- */
-cloudscraper.post = function(url, body, callback, headers) {
-  var data = '';
-  var bodyType = Object.prototype.toString.call(body);
+function defaults(options) {
+  var cloudscraper = originalDefaults.call(this, options, requester);
 
-  if(bodyType === '[object String]') {
-    data = body;
-  } else if (bodyType === '[object Object]') {
-    data = Object.keys(body).map(function(key) {
-      return key + '=' + body[key];
-    }).join('&');
+  if (requestModule === this) {
+    cloudscraper.defaults = defaults;
+  }
+  // Expose the debug option
+  Object.defineProperty(cloudscraper, 'debug',
+      Object.getOwnPropertyDescriptor(this, 'debug'));
+
+  return cloudscraper;
+}
+
+function requester(options, callback) {
+  // Prevent overwriting realEncoding in subsequent calls
+  if (!('realEncoding' in options)) {
+    // Can't just do the normal options.encoding || 'utf8'
+    // because null is a valid encoding.
+    if ('encoding' in options) {
+      options.realEncoding = options.encoding;
+    } else {
+      options.realEncoding = 'utf8';
+    }
   }
 
-  headers = headers || {};
-  headers['Content-Type'] = headers['Content-Type'] || 'application/x-www-form-urlencoded; charset=UTF-8';
-  headers['Content-Length'] = headers['Content-Length'] || data.length;
-
-  performRequest({
-    method: 'POST',
-    body: data,
-    url: url,
-    headers: headers
-  }, callback);
-};
-
-/**
- * Performs get or post request with generic request options
- * @param {Object}   options   Object to be passed to request's options argument
- * @param {Function} callback  function(error, response, body) {}
- */
-cloudscraper.request = function(options, callback) {
-  performRequest(options, callback);
-};
-
-function performRequest(options, callback) {
-  options = options || {};
-  options.headers = options.headers || {};
-
-  options.headers['Cache-Control'] = options.headers['Cache-Control'] || 'private';
-  options.headers['Accept'] = options.headers['Accept'] || 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5';
-
-  makeRequest = requestMethod(options.method);
-
-  //Can't just do the normal options.encoding || 'utf8'
-  //because null is a valid encoding.
-  if('encoding' in options) {
-    options.realEncoding = options.encoding;
-  } else {
-    options.realEncoding = 'utf8';
-  }
   options.encoding = null;
 
-  if (!options.url || !callback) {
-    throw new Error('To perform request, define both url and callback');
+  if (typeof callback !== 'function') {
+    throw new TypeError('Expected a callback function, got '
+      + typeof(callback) + ' instead.');
   }
 
-  options.headers['User-Agent'] = options.headers['User-Agent'] || UserAgent;
-  options.challengesToSolve = options.challengesToSolve || MaxChallengesToSolve; // Might not be the best way how to pass this variable
-  options.followAllRedirects = options.followAllRedirects === undefined ? true : options.followAllRedirects;
+  if (isNaN(options.challengesToSolve)) {
+    throw new TypeError('Expected `challengesToSolve` option to be a number, '
+      + 'got ' + typeof(options.challengesToSolve) + ' instead.');
+  }
 
-  makeRequest(options, function(error, response, body) {
+  requestModule(options, function(error, response, body) {
     processRequestResponse(options, {error: error, response: response, body: body}, callback);
   });
 }
@@ -101,7 +69,6 @@ function processRequestResponse(options, requestResult, callback) {
   var stringBody;
   var isChallengePresent;
   var isRedirectChallengePresent;
-  var isTargetPage; // Meaning we have finally reached the target page
 
   if (error || !body || !body.toString) {
     return callback({ errorType: 0, error: error }, response, body);
@@ -115,9 +82,9 @@ function processRequestResponse(options, requestResult, callback) {
 
   isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
   isRedirectChallengePresent = stringBody.indexOf('You are being redirected') !== -1 || stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
-  isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
+  // isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
 
-  if(isChallengePresent && options.challengesToSolve == 0) {
+  if (isChallengePresent && options.challengesToSolve === 0) {
     return callback({ errorType: 4 }, response, body);
   }
 
@@ -125,7 +92,7 @@ function processRequestResponse(options, requestResult, callback) {
   if (isChallengePresent) {
     setTimeout(function() {
       solveChallenge(response, stringBody, options, callback);
-    }, Timeout);
+    }, options.cloudflareTimeout);
   } else if (isRedirectChallengePresent) {
     setCookieAndReload(response, stringBody, options, callback);
   } else {
@@ -160,7 +127,6 @@ function checkForErrors(error, body) {
 function solveChallenge(response, body, options, callback) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var host = response.request.host;
-  var makeRequest = requestMethod(options.method);
   var jsChlVc;
   var answerResponse;
   var answerUrl;
@@ -177,7 +143,7 @@ function solveChallenge(response, body, options, callback) {
     return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, response, body);
   }
 
-  challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
+  var challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
 
   challenge = challenge[1];
 
@@ -198,20 +164,20 @@ function solveChallenge(response, body, options, callback) {
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
 
-  options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
-  options.url = answerUrl;
+  // Prevent reusing the headers object in subsequent calls as this affects tests
+  options.headers = Object.assign({}, options.headers);
+  // Original uri should be placed as referer
+  options.headers['Referer'] = response.request.uri.href;
+  options.uri = answerUrl;
   options.qs = answerResponse;
   options.challengesToSolve = options.challengesToSolve - 1;
 
   // Make request with answer
-  makeRequest(options, function(error, response, body) {
-    processRequestResponse(options, {error: error, response: response, body: body}, callback);
-  });
+  requester(options, callback);
 }
 
 function setCookieAndReload(response, body, options, callback) {
   var challenge = body.match(/S='([^']+)'/);
-  var makeRequest = requestMethod(options.method);
 
   if (!challenge) {
     return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, response, body);
@@ -230,24 +196,14 @@ function setCookieAndReload(response, body, options, callback) {
   vm.runInNewContext(cookieSettingCode, sandbox);
 
   try {
-    jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
+    options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
     return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
   }
 
   options.challengesToSolve = options.challengesToSolve - 1;
 
-  makeRequest(options, function(error, response, body) {
-    processRequestResponse(options, {error: error, response: response, body: body}, callback);
-  });
-}
-
-// Workaround for better testing. Request has pretty poor API
-function requestMethod(method) {
-  // For now only GET and POST are supported
-  method = method.toUpperCase();
-
-  return method === 'POST' ? request.post : request.get;
+  requester(options, callback);
 }
 
 function processResponseBody(options, error, response, body, callback) {
@@ -264,5 +220,3 @@ function processResponseBody(options, error, response, body, callback) {
 
   callback(error, response, body);
 }
-
-module.exports = cloudscraper;
