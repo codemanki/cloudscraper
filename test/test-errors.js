@@ -1,28 +1,22 @@
-var helper       = require('../spec_helper');
+'use strict';
+
+var cloudscraper = require('../index');
 var request      = require('request');
+var helper       = require('./helper');
+
+var sinon   = require('sinon');
+var expect  = require('chai').expect;
 
 describe('Cloudscraper', function() {
+  var uri = helper.defaultParams.uri;
   var sandbox;
-  var captchaPage       = helper.getFixture('captcha.html');
-  var accessDenied      = helper.getFixture('access_denied.html');
-  var invalidChallenge  = helper.getFixture('invalid_js_challenge.html');
-  var url = helper.testDefaults.url;
-  var headers = helper.testDefaults.headers;
-
-  // Since request.defaults returns new wrapper, create one global instance and then stub it in beforeEach
-  var requestDefault  = request.defaults({jar: true});
-  var defaultWithArgs = helper.requestParams({});
-
-  var cloudscraper;
-  before(function() {
-    helper.dropCache();
-  });
+  var Request;
 
   beforeEach(function () {
-    sandbox = sinon.sandbox.create();
-    sandbox.stub(request, 'defaults').returns(requestDefault);
-    cloudscraper = require('../../index');
-    // since cloudflare requires timeout, the module relies on setTimeout. It should be proprely stubbed to avoid ut running for too long
+    sandbox = sinon.createSandbox();
+    // Prepare stubbed Request for each test
+    Request = sandbox.stub(request, 'Request');
+    // setTimeout should be properly stubbed to prevent the unit test from running too long.
     this.clock = sinon.useFakeTimers();
   });
 
@@ -32,189 +26,229 @@ describe('Cloudscraper', function() {
   });
 
   it('should return error if it was thrown by request', function(done) {
-    var response = { statusCode: 500 },
-        fakeError = {fake: 'error'}; //not real request error, but it doesn't matter
+    var fakeError = new Error('fake error');
 
-    sandbox.stub(requestDefault, 'get')
-      .withArgs(defaultWithArgs)
-      .callsArgWith(1, fakeError, response, '');
+    Request.callsFake(helper.fakeRequest({ error: fakeError }));
 
-    cloudscraper.get(url, function(error) {
-      expect(error).to.be.eql({errorType: 0, error: fakeError}); // errorType 0, means it is some kind of system error
+    cloudscraper.get(uri, function(error) {
+      // errorType 0, means it is some kind of system error
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 0, error: fakeError });
+      expect(error.error).to.be.an('error');
+
+      expect(Request).to.be.calledOnce;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
       done();
-    }, headers);
+    });
 
   });
 
-  it('should return error if captcha is served by cloudflare', function(done){
-    var response = { statusCode: 503 };
+  it('should return error if captcha is served by cloudflare', function(done) {
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('captcha.html')
+    });
 
-    sandbox.stub(requestDefault, 'get')
-      .withArgs(defaultWithArgs)
-      .callsArgWith(1, null, response, captchaPage);
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
 
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error).to.be.eql({errorType: 1}); // errorType 1, means captcha is served
-      expect(response).to.be.eql(captchaPage);
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 1, means captcha is served
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 1 });
+
+      expect(Request).to.be.calledOnce;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
       done();
-    }, headers);
+    });
   });
 
-  it('should return error if cloudflare returned some inner error', function(done){
-    //https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
-    var response = { statusCode: 500 };
+  it('should return error if cloudflare returned some inner error', function(done) {
+    // https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages
+    // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
 
-    sandbox.stub(requestDefault, 'get')
-      .withArgs(defaultWithArgs)
-      .callsArgWith(1, null, response, accessDenied);
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 500,
+      body: helper.getFixture('access_denied.html')
+    });
 
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error).to.be.eql({errorType: 2, error: 1006}); // errorType 2, means inner cloudflare error
-      expect(response).to.be.eql(accessDenied);
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 2, means inner cloudflare error
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 2, error: 1006 });
+
+      expect(Request).to.be.calledOnce;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
       done();
-    }, headers);
+    });
   });
   
-  it('should return errior if cf presented more than 3 challenges in a row', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html');
-    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url);
-    var stubbed;
+  it('should return error if cf presented more than 3 challenges in a row', function(done) {
+    // The expected params for all subsequent calls to Request
+    var expectedParams = helper.extendParams({
+      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+    });
 
-    var pageWithCaptchaResponse = { statusCode: 200 };
+    // Perform less strict matching on headers and qs to simplify this test
+    Object.assign(expectedParams, {
+      headers: sinon.match.object,
+      qs: sinon.match.object
+    });
+
     // Cloudflare is enabled for site. It returns a page with js challenge
-    stubbed = sandbox.stub(requestDefault, 'get')
-      .withArgs(helper.requestParams({url: url, headers: headers}))
-      .callsArgWith(1, null, response, jsChallengePage);
+    var expectedResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_09_06_2016.html')
+    });
 
-    // Second call to request.get returns challenge
-    stubbed.withArgs({
-      method: 'GET',
-      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
-      qs: sinon.match.any,
-      headers: sinon.match.any,
-      encoding: null,
-      realEncoding: 'utf8',
-      followAllRedirects: true,
-      challengesToSolve: 2
-    })
-    .callsArgWith(1, null, response, jsChallengePage);
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    // Third call to request.get returns challenge
-    stubbed.withArgs({
-      method: 'GET',
-      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
-      qs: sinon.match.any,
-      headers: sinon.match.any,
-      encoding: null,
-      realEncoding: 'utf8',
-      followAllRedirects: true,
-      challengesToSolve: 1
-    })
-    .callsArgWith(1, null, response, jsChallengePage);
+    cloudscraper.get(uri, function(error, response, body) {
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 4 });
 
-    // Fourth call to request.get still returns a challenge
-    stubbed.withArgs({
-      method: 'GET',
-      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
-      qs: sinon.match.any,
-      headers: sinon.match.any,
-      encoding: null,
-      realEncoding: 'utf8',
-      followAllRedirects: true,
-      challengesToSolve: 0
-    })
-    .callsArgWith(1, null, response, jsChallengePage);
+      expect(Request.callCount).to.be.equal(4);
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
 
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error).to.be.eql({errorType: 4}); // errorType 1, means captcha is served
-      expect(response).to.be.eql(jsChallengePage);
+      var total = helper.defaultParams.challengesToSolve + 1;
+      for (var i = 1; i < total; i++) {
+        // Decrement the number of challengesToSolve to match actual params
+        expectedParams.challengesToSolve -= 1;
+        expect(Request.getCall(i)).to.be.calledWithExactly(expectedParams);
+      }
+
+      expect(response).to.be.equal(expectedResponse);
+      expect(body).to.be.equal(expectedResponse.body);
       done();
-    }, headers);
+    });
 
     this.clock.tick(200000); // tick the timeout
   });
-  it('should return error if body is undefined', function(done){
-    //https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
-    var response = { statusCode: 500 };
+  it('should return error if body is undefined', function(done) {
+    // https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages
+    // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
 
-    sandbox.stub(requestDefault, 'get')
-      .withArgs(defaultWithArgs)
-      .callsArgWith(1, null, response, undefined);
+    Request.callsFake(helper.fakeRequest({
+      response: { statusCode: 500}
+    }));
 
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error).to.be.eql({errorType: 0, error: null}); // errorType 2, means inner cloudflare error
-      expect(response).to.be.eql(undefined);
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 2, means inner cloudflare error
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 0, error: null });
+
+      expect(Request).to.be.calledOnce;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(body).to.be.equal(undefined);
       done();
-    }, headers);
+    });
   });
 
   it('should return error if challenge page failed to be parsed', function(done) {
-    var response = helper.fakeResponseObject(200, headers, invalidChallenge, url);
-    sandbox.stub(requestDefault, 'get')
-      .withArgs(defaultWithArgs)
-      .callsArgWith(1, null, response, invalidChallenge);
+    var onlyResponse = helper.fakeResponse({
+      body: helper.getFixture('invalid_js_challenge.html')
+    });
 
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error.errorType).to.be.eql(3); // errorType 3, means parsing failed
-      expect(response).to.be.eql(invalidChallenge);
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 3, means parsing failed
+      expect(error).to.be.an('object');
+      expect(error).to.own.include({ errorType: 3 });
+
+      expect(Request).to.be.calledOnce;
+      expect(Request).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
       done();
-    }, headers);
+    });
 
     this.clock.tick(7000); // tick the timeout
   });
 
   it('should return error if it was thrown by request when solving challenge', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_21_05_2015.html'),
-        response = helper.fakeResponseObject(503, headers, jsChallengePage, url),
-        connectionError = {error: 'ECONNRESET'},
-        stubbed;
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_21_05_2015.html')
+    });
+
+    var fakeError = Object.assign(new Error('read ECONNRESET'), {
+      code: 'ECONNRESET', errno: 'ECONNRESET', syscall: 'read'
+    });
 
     // Cloudflare is enabled for site. It returns a page with js challenge
-    stubbed = sandbox.stub(requestDefault, 'get')
-      .onCall(0)
-      .callsArgWith(1, null, response, jsChallengePage);
+    Request.onFirstCall()
+        .callsFake(helper.fakeRequest({ response: onlyResponse }));
 
-    stubbed
-      .onCall(1)
-      .callsArgWith(1, connectionError);
+    Request.onSecondCall()
+        .callsFake(helper.fakeRequest({ error: fakeError }));
 
-    cloudscraper.get(url, function(error) {
-      expect(error).to.be.eql({errorType: 0, error: connectionError}); // errorType 0, connection eror for example
+    cloudscraper.get(uri, function(error) {
+      // errorType 0, a connection error for example
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 0, error: fakeError });
+      expect(error.error).to.be.an('error');
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
       done();
-    }, headers);
+    });
 
-    this.clock.tick(7000); // tick the timeout
+    // tick the timeout
+    this.clock.tick(7000);
   });
 
   it('should properly handle a case when after a challenge another one is returned', function(done) {
-    var jsChallengePage = helper.getFixture('js_challenge_09_06_2016.html');
-    var response = helper.fakeResponseObject(503, headers, jsChallengePage, url);
-    var stubbed;
-
-    var pageWithCaptchaResponse = { statusCode: 200 };
     // Cloudflare is enabled for site. It returns a page with js challenge
-    stubbed = sandbox.stub(requestDefault, 'get')
-      .withArgs(helper.requestParams({url: url, headers: headers}))
-      .callsArgWith(1, null, response, jsChallengePage);
+    var firstResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_09_06_2016.html')
+    });
+
+    Request.onFirstCall()
+        .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     // Second call to request.get returns recaptcha
-    stubbed.withArgs({
-      method: 'GET',
-      url: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
-      qs: sinon.match.any,
-      headers: sinon.match.any,
-      encoding: null,
-      realEncoding: 'utf8',
-      followAllRedirects: true,
+    var secondParams = helper.extendParams({
+      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       challengesToSolve: 2
-    })
-    .callsArgWith(1, null, pageWithCaptchaResponse, captchaPage);
+    });
 
-    cloudscraper.get(url, function(error, body, response) {
-      expect(error).to.be.eql({errorType: 1}); // errorType 1, means captcha is served
-      expect(response).to.be.eql(captchaPage);
+    // Perform less strict matching on headers and qs to simplify this test
+    Object.assign(secondParams, {
+      headers: sinon.match.object,
+      qs: sinon.match.object
+    });
+
+    var secondResponse = helper.fakeResponse({
+      body: helper.getFixture('captcha.html')
+    });
+
+    Request.onSecondCall()
+        .callsFake(helper.fakeRequest({ response: secondResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 1, means captcha is served
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 1 });
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+
+      expect(response).to.be.equal(secondResponse);
+      expect(body).to.be.equal(secondResponse.body);
       done();
-    }, headers);
+    });
 
     this.clock.tick(7000); // tick the timeout
   });
