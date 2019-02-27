@@ -166,8 +166,9 @@ function solveChallenge(response, body, options, callback) {
 
   // Prevent reusing the headers object in subsequent calls as this affects tests
   options.headers = Object.assign({}, options.headers);
-  options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
-  options.url = answerUrl;
+  // Original uri should be placed as referer
+  options.headers['Referer'] = response.request.uri.href;
+  options.uri = answerUrl;
   options.qs = answerResponse;
   options.challengesToSolve = options.challengesToSolve - 1;
 
