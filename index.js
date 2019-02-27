@@ -164,6 +164,8 @@ function solveChallenge(response, body, options, callback) {
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
 
+  // Prevent reusing the headers object in subsequent calls as this affects tests
+  options.headers = Object.assign({}, options.headers);
   options.headers['Referer'] = response.request.uri.href; // Original url should be placed as referer
   options.url = answerUrl;
   options.qs = answerResponse;
