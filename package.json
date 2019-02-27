@@ -4,7 +4,7 @@
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
   "scripts": {
-    "test": "grunt",
+    "test": "mocha",
     "lint": "eslint ."
   },
   "repository": {
@@ -27,17 +27,15 @@
     "request": "^2.88.0"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
     "eslint": "^5.14.1",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.16.0",
     "eslint-plugin-node": "^8.0.1",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
-    "chai": "^1.10.0",
-    "grunt": "^0.4.5",
-    "grunt-cli": "^1.2.0",
-    "grunt-mocha-test": "^0.12.4",
-    "mocha": "^2.0.1",
-    "sinon": "^1.12.1"
+    "mocha": "^6.0.2",
+    "sinon": "^7.2.4",
+    "sinon-chai": "^3.3.0"
   }
 }
