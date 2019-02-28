@@ -1,4 +1,4 @@
-var request = require('request');
+var request = require('request-promise');
 var sinon   = require('sinon');
 var fs      = require('fs');
 var url     = require('url');
@@ -7,6 +7,7 @@ var path    = require('path');
 var defaultParams = {
   // Since cloudscraper wraps the callback, just ensure callback is a function
   callback: sinon.match.func,
+  requester: request,
   jar: request.jar(),
   uri: 'http://example-site.dev/path/',
   headers: {
@@ -73,7 +74,16 @@ module.exports = {
     }
 
     return function Request(params) {
-      params.callback(fake.error, fake.response, fake.body);
+      return Object.defineProperty({}, 'callback', {
+        get: function() {
+          // Return the callback function that is to be replaced.
+          return params.callback;
+        },
+        set: function(callback) {
+          // Don't callback until after cloudscraper replaces the callback function.
+          callback(fake.error, fake.response, fake.body);
+        }
+      });
     };
   }
 };

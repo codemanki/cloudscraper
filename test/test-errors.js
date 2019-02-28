@@ -1,7 +1,7 @@
 'use strict';
 
 var cloudscraper = require('../index');
-var request      = require('request');
+var request      = require('request-promise');
 var helper       = require('./helper');
 
 var sinon   = require('sinon');
