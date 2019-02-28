@@ -337,4 +337,12 @@ describe('Cloudscraper', function() {
       done();
     });
   });
+
+  it('should define custom defaults function', function (done) {
+    expect(cloudscraper.defaults).to.not.equal(request.defaults);
+
+    var custom = cloudscraper.defaults({ challengesToSolve: 5 });
+    expect(custom.defaults).to.equal(cloudscraper.defaults);
+    done();
+  });
 });
