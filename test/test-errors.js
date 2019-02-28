@@ -131,6 +131,7 @@ describe('Cloudscraper', function() {
 
     this.clock.tick(200000); // tick the timeout
   });
+
   it('should return error if body is undefined', function(done) {
     // https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
@@ -174,6 +175,64 @@ describe('Cloudscraper', function() {
 
     this.clock.tick(7000); // tick the timeout
   });
+
+  it('should return error if js challenge has error during evaluation', function(done) {
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_03_12_2018_1.html')
+    });
+
+    // Adds a syntax error near the end of line 37
+    onlyResponse.body = onlyResponse.body.replace(/\.toFixed/gm, '..toFixed');
+
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 3, means parsing failed
+      expect(error).to.be.an('object');
+      expect(error).to.own.include({ errorType: 3 });
+      expect(error.error).to.be.a('string');
+      expect(error.error).to.include('Error occurred during evaluation: ');
+
+      expect(Request).to.be.calledOnce;
+      expect(Request).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
+      done();
+    });
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
+  it('should return error if challengeId extraction fails', function(done) {
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_03_12_2018_1.html')
+    });
+
+    onlyResponse.body = onlyResponse.body.replace(/name="jschl_vc"/gm, '');
+
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 3, means parsing failed
+      expect(error).to.be.an('object');
+      expect(error).to.own.include({ errorType: 3 });
+      expect(error.error).to.be.a('string');
+      expect(error.error).to.include('I cant extract challengeId');
+
+      expect(Request).to.be.calledOnce;
+      expect(Request).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
+      done();
+    });
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
 
   it('should return error if it was thrown by request when solving challenge', function(done) {
     var onlyResponse = helper.fakeResponse({
@@ -247,6 +306,121 @@ describe('Cloudscraper', function() {
 
       expect(response).to.be.equal(secondResponse);
       expect(body).to.be.equal(secondResponse.body);
+      done();
+    });
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
+  it('should return error if challenge page cookie extraction fails', function(done) {
+    // Cloudflare is enabled for site.
+    // It returns a redirecting page if a (session) cookie is unset.
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      // The cookie extraction codes looks for the `S` variable assignment
+      body: helper.getFixture('js_challenge_cookie.html').replace(/S=/gm, 'Z=')
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({
+        errorType: 3,
+        error: 'I cant extract cookie generation code from page'
+      });
+
+      expect(Request).to.be.calledOnce;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
+      done();
+    });
+  });
+
+  it('should throw a TypeError if callback is not a function', function(done) {
+    var spy = sinon.spy(function() {
+      cloudscraper.get(uri);
+    });
+
+    expect(spy).to.throw(TypeError, /Expected a callback function/);
+    done();
+  });
+
+  it('should throw a TypeError if challengesToSolve is not a number', function(done) {
+    var spy = sinon.spy(function() {
+      var options = { uri: uri, challengesToSolve: 'abc' };
+
+      cloudscraper.get(options, function(){});
+    });
+
+    expect(spy).to.throw(TypeError, /`challengesToSolve` option .*number/);
+    done();
+  });
+
+  it('should detect captcha in the response body\'s real encoding', function(done) {
+    var firstParams = helper.extendParams({
+      realEncoding: 'fake-encoding'
+    });
+
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: {
+        toString: function(encoding) {
+          if (encoding === 'fake-encoding') {
+            return helper.getFixture('captcha.html');
+          }
+
+          return 'fake response body';
+        }
+      }
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    var options = { uri: uri, encoding: 'fake-encoding' };
+
+    cloudscraper.get(options, function(error, response, body) {
+      // errorType 1, means captcha is served
+      expect(error).to.be.an('object');
+      expect(error).to.be.eql({ errorType: 1 });
+
+      expect(Request).to.be.calledOnce;
+      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body.toString('fake-encoding'));
+      done();
+    });
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
+  it('should return error if cookie setting code evaluation fails', function(done) {
+    // Change the cookie setting code so the vm will throw an error
+    var html = helper.getFixture('js_challenge_cookie.html');
+    var b64 = (new Buffer('throw new Error(\'vm eval failed\');')).toString('base64');
+
+    var onlyResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: html.replace(/S='([^']+)'/, 'S=\'' + b64 + '\'')
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: onlyResponse }));
+
+    cloudscraper.get(uri, function(error, response, body) {
+      // errorType 3, means parsing failed
+      expect(error).to.be.an('object');
+      expect(error).to.own.include({ errorType: 3 });
+      expect(error.error).to.be.a('string');
+      expect(error.error).to.include('Error occurred during evaluation: vm eval failed');
+
+      expect(Request).to.be.calledOnce;
+      expect(Request).to.be.calledWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(onlyResponse);
+      expect(body).to.be.equal(onlyResponse.body);
       done();
     });
 

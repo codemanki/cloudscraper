@@ -71,6 +71,7 @@ function processRequestResponse(options, requestResult, callback) {
   var isRedirectChallengePresent;
 
   if (error || !body || !body.toString) {
+    // Pure request error (bad connection, wrong url, etc)
     return callback({ errorType: 0, error: error }, response, body);
   }
 
@@ -103,11 +104,6 @@ function processRequestResponse(options, requestResult, callback) {
 
 function checkForErrors(error, body) {
   var match;
-
-  // Pure request error (bad connection, wrong url, etc)
-  if(error) {
-    return { errorType: 0, error: error };
-  }
 
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
@@ -193,9 +189,9 @@ function setCookieAndReload(response, body, options, callback) {
     document: {}
   };
 
-  vm.runInNewContext(cookieSettingCode, sandbox);
-
   try {
+    vm.runInNewContext(cookieSettingCode, sandbox);
+
     options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
     return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
