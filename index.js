@@ -1,28 +1,41 @@
 var vm = require('vm');
-var requestModule = require('request');
+var requestModule = require('request-promise');
 
-var originalDefaults = requestModule.defaults;
+module.exports = defaults.call(requestModule);
 
-module.exports = defaults.call(requestModule, {
-  // Cookies should be enabled
-  jar: requestModule.jar(),
-  headers: {
-    'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
-    'Cache-Control': 'private',
-    'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
-  },
-  // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
-  cloudflareTimeout: 6000,
-  // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
-  followAllRedirects: true,
-  // Support only this max challenges in row. If CF returns more, throw an error
-  challengesToSolve: 3
-});
+function defaults(params) {
+  // isCloudScraper === !isRequestModule
+  var isRequestModule = this === requestModule;
 
-function defaults(options) {
-  var cloudscraper = originalDefaults.call(this, options, requester);
+  var defaultParams = (!isRequestModule && this.defaultParams) || {
+    requester: requestModule,
+    // Cookies should be enabled
+    jar: requestModule.jar(),
+    headers: {
+      'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+      'Cache-Control': 'private',
+      'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+    },
+    // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
+    cloudflareTimeout: 6000,
+    // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
+    followAllRedirects: true,
+    // Support only this max challenges in row. If CF returns more, throw an error
+    challengesToSolve: 3
+  };
 
-  if (requestModule === this) {
+  // Object.assign requires at least nodejs v4, request only test/supports v6+
+  defaultParams = Object.assign({}, defaultParams, params);
+
+  var cloudscraper = requestModule.defaults.call(this, defaultParams, requester);
+
+  // There's no safety net here, any changes apply to all future requests
+  // that are made with this instance and derived instances
+  cloudscraper.defaultParams = defaultParams;
+
+  // Ensure this instance gets a copy of our custom defaults function
+  // It's not necessary on subsequent calls
+  if (isRequestModule) {
     cloudscraper.defaults = defaults;
   }
   // Expose the debug option
@@ -32,7 +45,7 @@ function defaults(options) {
   return cloudscraper;
 }
 
-function requester(options, callback) {
+function requester(options) {
   // Prevent overwriting realEncoding in subsequent calls
   if (!('realEncoding' in options)) {
     // Can't just do the normal options.encoding || 'utf8'
@@ -44,21 +57,41 @@ function requester(options, callback) {
     }
   }
 
+  // Requester is wrapped by request to ensure that we get new options on first call
   options.encoding = null;
-
-  if (typeof callback !== 'function') {
-    throw new TypeError('Expected a callback function, got '
-      + typeof(callback) + ' instead.');
-  }
 
   if (isNaN(options.challengesToSolve)) {
     throw new TypeError('Expected `challengesToSolve` option to be a number, '
       + 'got ' + typeof(options.challengesToSolve) + ' instead.');
   }
 
-  requestModule(options, function(error, response, body) {
-    processRequestResponse(options, {error: error, response: response, body: body}, callback);
-  });
+  var createRequest = options.requester;
+
+  if (typeof createRequest !== 'function') {
+    throw new TypeError('Expected `requester` option to be a function, got '
+        + typeof(createRequest) + ' instead.');
+  }
+
+  var request = createRequest(options);
+  // This should be a user supplied callback or request-promise's default callback
+  var callback = request.callback;
+
+  if (typeof callback !== 'function') {
+    throw new TypeError('Expected a callback function, got '
+        + typeof(callback) + ' instead.');
+  }
+
+  var called = false;
+  request.callback = function(error, response, body) {
+    if (called) return;
+
+    called = true;
+    var result = { error: error, response: response, body: body };
+
+    processRequestResponse(options, result, callback);
+  };
+
+  return request;
 }
 
 function processRequestResponse(options, requestResult, callback) {
