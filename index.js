@@ -189,9 +189,9 @@ function setCookieAndReload(response, body, options, callback) {
     document: {}
   };
 
-  vm.runInNewContext(cookieSettingCode, sandbox);
-
   try {
+    vm.runInNewContext(cookieSettingCode, sandbox);
+
     options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (err) {
     return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
