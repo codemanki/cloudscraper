@@ -1,4 +1,4 @@
-var request = require('request-promise');
+var request = require('./rp');
 var sinon   = require('sinon');
 var fs      = require('fs');
 var url     = require('url');
@@ -7,7 +7,7 @@ var path    = require('path');
 var defaultParams = {
   // Since cloudscraper wraps the callback, just ensure callback is a function
   callback: sinon.match.func,
-  requester: request,
+  requester: sinon.match.func,
   jar: request.jar(),
   uri: 'http://example-site.dev/path/',
   headers: {
@@ -29,7 +29,6 @@ var cache = {};
 module.exports = {
   getFixture: function(fileName) {
     if (cache[fileName] === undefined) {
-      // noinspection JSUnresolvedVariable
       cache[fileName] = fs.readFileSync(path.join(__dirname, 'fixtures', fileName), 'utf8');
     }
     return cache[fileName];
@@ -40,7 +39,7 @@ module.exports = {
     var fake = Object.assign({
       statusCode: 200,
       headers: defaultParams.headers,
-      body: '',
+      body: ''
     }, template);
 
     // The uri property of the fake response is only for tests to simplify fake request creation.
@@ -65,7 +64,7 @@ module.exports = {
     var fake = Object.assign({
       error: null,
       // Set the default fake statusCode to 500 if an error is provided
-      response: { statusCode: template.error ? 500 : 200 },
+      response: { statusCode: template.error ? 500 : 200 }
     }, template);
 
     // Use the body from fake response if the template doesn't provide it
@@ -73,17 +72,38 @@ module.exports = {
       fake.body = fake.response.body;
     }
 
+    // Freeze the fake result and it's properties for more reliable tests.
+    Object.freeze(fake);
+    Object.keys(fake).forEach(function (key) {
+      if (!Object.isFrozen(fake[key]) && !Buffer.isBuffer(fake[key])) {
+        Object.freeze(fake[key]);
+      }
+    });
+
     return function Request(params) {
-      return Object.defineProperty({}, 'callback', {
+      // The promise returned by request-promise won't resolve until
+      // it's callback is called. The problem is that we need to callback
+      // after the constructor returns to simulate a real request/response.
+      var instance = request(params);
+
+      // This is the callback that cloudscraper should replace.
+      var callback = instance.callback;
+
+      // We don't want to callback with the fake result until
+      // after the constructor returns thus define a property getter/setter
+      // and wait for cloudscraper to set it's own callback.
+      Object.defineProperty(instance, 'callback', {
         get: function() {
-          // Return the callback function that is to be replaced.
-          return params.callback;
+          // Returns request-promise's callback.
+          return callback;
         },
         set: function(callback) {
-          // Don't callback until after cloudscraper replaces the callback function.
+          // This won't callback unless cloudscraper replaces the callback.
           callback(fake.error, fake.response, fake.body);
         }
       });
+
+      return instance;
     };
   }
 };
