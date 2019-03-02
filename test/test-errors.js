@@ -2,7 +2,7 @@
 
 var cloudscraper = require('../index');
 var request      = require('request-promise');
-var RequestError = require('request-promise/errors').RequestError;
+var errors = require('../errors');
 var helper       = require('./helper');
 
 var sinon   = require('sinon');
@@ -28,20 +28,19 @@ describe('Cloudscraper', function() {
   });
 
   it('should return error if it was thrown by request', function(done) {
-    var fakeError = new Error('fake error');
+    var fakeError = new Error('fake');
 
     Request.callsFake(helper.fakeRequest({ error: fakeError }));
 
     var promise = cloudscraper.get(uri, function (error) {
-      // errorType 0, means it is some kind of system error
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 0, error: fakeError });
-      expect(error.error).to.be.an('error');
+      expect(error).to.be.instanceOf(errors.RequestError);
+      expect(error).to.have.property('error', fakeError);
+      expect(error).to.have.property('errorType', 0);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
   it('should return error if captcha is served by cloudflare', function(done) {
@@ -54,8 +53,9 @@ describe('Cloudscraper', function() {
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       // errorType 1, means captcha is served
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 1 });
+      expect(error).to.be.instanceOf(errors.CaptchaError);
+      expect(error).to.have.property('error', 'captcha');
+      expect(error).to.have.property('errorType', 1);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -63,7 +63,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
   });
 
   it('should return error if cloudflare returned some inner error', function(done) {
@@ -79,8 +79,9 @@ describe('Cloudscraper', function() {
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       // errorType 2, means inner cloudflare error
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 2, error: 1006 });
+      expect(error).to.be.instanceOf(errors.CloudflareError);
+      expect(error).to.have.property('error', 1006);
+      expect(error).to.have.property('errorType', 2);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -88,7 +89,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
   it('should return error if cf presented more than 3 challenges in a row', function(done) {
@@ -112,8 +113,9 @@ describe('Cloudscraper', function() {
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 4 });
+      expect(error).to.be.instanceOf(errors.CloudflareError);
+      expect(error).to.have.property('error', 'Cloudflare challenge loop');
+      expect(error).to.have.property('errorType', 4);
 
       assert.equal(Request.callCount, 4, 'Request call count');
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
@@ -129,7 +131,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
 
     // Tick the timeout
     this.clock.tick(200000);
@@ -140,20 +142,20 @@ describe('Cloudscraper', function() {
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
 
     Request.callsFake(helper.fakeRequest({
-      response: { statusCode: 500}
+      response: {statusCode: 500}
     }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      // errorType 2, means inner cloudflare error
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 0, error: null });
+      expect(error).to.be.instanceOf(errors.RequestError);
+      expect(error).to.have.property('error', null);
+      expect(error).to.have.property('errorType', 0);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
       expect(body).to.be.equal(undefined);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
   it('should return error if challenge page failed to be parsed', function(done) {
@@ -164,9 +166,9 @@ describe('Cloudscraper', function() {
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      // errorType 3, means parsing failed
-      expect(error).to.be.an('object');
-      expect(error).to.own.include({ errorType: 3 });
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error').that.is.ok;
+      expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -174,7 +176,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
@@ -191,11 +193,10 @@ describe('Cloudscraper', function() {
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      // errorType 3, means parsing failed
-      expect(error).to.be.an('object');
-      expect(error).to.own.include({ errorType: 3 });
-      expect(error.error).to.be.a('string');
-      expect(error.error).to.include('Error occurred during evaluation: ');
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error').that.is.an('error');
+      expect(error).to.have.property('errorType', 3);
+      expect(error.message).to.include('Challenge evaluation failed');
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -203,7 +204,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
@@ -219,11 +220,9 @@ describe('Cloudscraper', function() {
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      // errorType 3, means parsing failed
-      expect(error).to.be.an('object');
-      expect(error).to.own.include({ errorType: 3 });
-      expect(error.error).to.be.a('string');
-      expect(error.error).to.include('I cant extract challengeId');
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error', 'challengeId (jschl_vc) extraction failed');
+      expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -231,7 +230,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
@@ -256,15 +255,15 @@ describe('Cloudscraper', function() {
 
     var promise = cloudscraper.get(uri, function (error) {
       // errorType 0, a connection error for example
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 0, error: fakeError });
-      expect(error.error).to.be.an('error');
+      expect(error).to.be.instanceOf(errors.RequestError);
+      expect(error).to.have.property('error', fakeError);
+      expect(error).to.have.property('errorType', 0);
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
 
     // tick the timeout
     this.clock.tick(7000);
@@ -301,8 +300,9 @@ describe('Cloudscraper', function() {
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       // errorType 1, means captcha is served
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 1 });
+      expect(error).to.be.instanceOf(errors.CaptchaError);
+      expect(error).to.have.property('error', 'captcha');
+      expect(error).to.have.property('errorType', 1);
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
@@ -312,7 +312,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(secondResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
@@ -329,11 +329,9 @@ describe('Cloudscraper', function() {
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({
-        errorType: 3,
-        error: 'I cant extract cookie generation code from page'
-      });
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error', 'Cookie code extraction failed');
+      expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -341,7 +339,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should throw a TypeError if callback is not a function', function(done) {
@@ -397,8 +395,9 @@ describe('Cloudscraper', function() {
 
     var promise = cloudscraper.get(options, function (error, response, body) {
       // errorType 1, means captcha is served
-      expect(error).to.be.an('object');
-      expect(error).to.be.eql({ errorType: 1 });
+      expect(error).to.be.instanceOf(errors.CaptchaError);
+      expect(error).to.have.property('error', 'captcha');
+      expect(error).to.have.property('errorType', 1);
 
       expect(Request).to.be.calledOnceWithExactly(firstParams);
 
@@ -406,7 +405,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body.toString('fake-encoding'));
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
@@ -424,11 +423,10 @@ describe('Cloudscraper', function() {
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
-      // errorType 3, means parsing failed
-      expect(error).to.be.an('object');
-      expect(error).to.own.include({ errorType: 3 });
-      expect(error.error).to.be.a('string');
-      expect(error.error).to.include('Error occurred during evaluation: vm eval failed');
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error').that.is.an('error');
+      expect(error).to.have.property('errorType', 3);
+      expect(error.message).to.include('vm eval failed');
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
@@ -436,7 +434,7 @@ describe('Cloudscraper', function() {
       expect(body).to.be.equal(expectedResponse.body);
     });
 
-    expect(promise).to.be.rejectedWith(RequestError).and.notify(done);
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
