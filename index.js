@@ -27,7 +27,10 @@ function defaults(params) {
   // Object.assign requires at least nodejs v4, request only test/supports v6+
   defaultParams = Object.assign({}, defaultParams, params);
 
-  var cloudscraper = requestModule.defaults.call(this, defaultParams, requester);
+  var cloudscraper = requestModule.defaults
+      .call(this, defaultParams, function(options) {
+        return performRequest(options, true);
+      });
 
   // There's no safety net here, any changes apply to all future requests
   // that are made with this instance and derived instances
@@ -45,7 +48,7 @@ function defaults(params) {
   return cloudscraper;
 }
 
-function requester(options) {
+function performRequest(options, isFirstRequest) {
   // Prevent overwriting realEncoding in subsequent calls
   if (!('realEncoding' in options)) {
     // Can't just do the normal options.encoding || 'utf8'
@@ -65,17 +68,19 @@ function requester(options) {
       + 'got ' + typeof(options.challengesToSolve) + ' instead.');
   }
 
-  var createRequest = options.requester;
+  // This should be the default export of either request or request-promise.
+  var requester = options.requester;
 
-  if (typeof createRequest !== 'function') {
+  if (typeof requester !== 'function') {
     throw new TypeError('Expected `requester` option to be a function, got '
-        + typeof(createRequest) + ' instead.');
+        + typeof(requester) + ' instead.');
   }
 
-  var request = createRequest(options);
-  // This should be a user supplied callback or request-promise's default callback
+  var request = requester(options);
+  // This should be a user supplied callback or request-promise's callback.
   var callback = request.callback;
 
+  // If the requester is not request-promise, ensure we get a callback.
   if (typeof callback !== 'function') {
     throw new TypeError('Expected a callback function, got '
         + typeof(callback) + ' instead.');
@@ -88,7 +93,13 @@ function requester(options) {
     called = true;
     var result = { error: error, response: response, body: body };
 
-    processRequestResponse(options, result, callback);
+    if (isFirstRequest) {
+      // We only need the callback from the first request.
+      // The other callbacks can be safely ignored.
+      options.callback = callback;
+    }
+
+    processRequestResponse(options, result, options.callback);
   };
 
   return request;
@@ -202,7 +213,7 @@ function solveChallenge(response, body, options, callback) {
   options.challengesToSolve = options.challengesToSolve - 1;
 
   // Make request with answer
-  requester(options, callback);
+  performRequest(options, false);
 }
 
 function setCookieAndReload(response, body, options, callback) {
@@ -232,12 +243,16 @@ function setCookieAndReload(response, body, options, callback) {
 
   options.challengesToSolve = options.challengesToSolve - 1;
 
-  requester(options, callback);
+  performRequest(options, false);
 }
 
 function processResponseBody(options, error, response, body, callback) {
   if(typeof options.realEncoding === 'string') {
     body = body.toString(options.realEncoding);
+    // The resolveWithFullResponse option will resolve with the response object.
+    // This changes the response.body so it is as expected.
+    response.body = body;
+
     // In case of real encoding, try to validate the response
     // and find potential errors there.
     // If encoding is not provided, return response as it is
@@ -245,7 +260,6 @@ function processResponseBody(options, error, response, body, callback) {
       return callback(validationError, response, body);
     }
   }
-
 
   callback(error, response, body);
 }
