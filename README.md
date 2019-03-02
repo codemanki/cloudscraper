@@ -20,7 +20,7 @@ In general, CloudFlare has 4 types of _common_ anti-bot pages:
   - Page with recaptcha
   - Page with error ( your ip was banned, etc)
 
-__Unfortunatelly there is no solution, if website is protected by captcha.__
+__Unfortunately, there is no support for handling a CAPTCHA, if the response contains it, but some convenience methods may be added in the future.__
 
 If you notice that for some reason cloudscraper stopped to work, do not hesitate and get in touch with me ( by creating an issue here, for example), so i can update it.
 
