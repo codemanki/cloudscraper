@@ -125,7 +125,7 @@ function processRequestResponse(options, result) {
   stringBody = body.toString('utf8');
 
   try {
-    validate(response, stringBody, options);
+    validate(options, response, stringBody);
   } catch (error) {
     return callback(error, response, body);
   }
@@ -145,17 +145,17 @@ function processRequestResponse(options, result) {
   // If body contains specified string, solve challenge
   if (isChallengePresent) {
     setTimeout(function() {
-      solveChallenge(response, stringBody, options);
+      solveChallenge(options, response, stringBody);
     }, options.cloudflareTimeout);
   } else if (isRedirectChallengePresent) {
-    setCookieAndReload(response, stringBody, options);
+    setCookieAndReload(options, response, stringBody);
   } else {
     // All is good
-    processResponseBody(response, body, options);
+    processResponseBody(options, response, body);
   }
 }
 
-function validate(response, body, options) {
+function validate(options, response, body) {
   var match;
 
   // Finding captcha
@@ -174,7 +174,7 @@ function validate(response, body, options) {
   return false;
 }
 
-function solveChallenge(response, body, options) {
+function solveChallenge(options, response, body) {
   var callback = options.callback;
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var host = response.request.host;
@@ -238,7 +238,7 @@ function solveChallenge(response, body, options) {
   performRequest(options, false);
 }
 
-function setCookieAndReload(response, body, options) {
+function setCookieAndReload(options, response, body) {
   var callback = options.callback;
 
   var challenge = body.match(/S='([^']+)'/);
@@ -275,7 +275,7 @@ function setCookieAndReload(response, body, options) {
   performRequest(options, false);
 }
 
-function processResponseBody(response, body, options) {
+function processResponseBody(options, response, body) {
   var callback = options.callback;
   var error = null;
 
@@ -289,7 +289,7 @@ function processResponseBody(response, body, options) {
     // and find potential errors there.
     // If encoding is not provided, return response as it is
     try {
-      validate(response, body, options);
+      validate(options, response, body);
     } catch (e) {
       error = e;
     }
