@@ -1,5 +1,6 @@
 var vm = require('vm');
 var requestModule = require('request-promise');
+var errors = require('./errors');
 
 module.exports = defaults.call(requestModule);
 
@@ -27,7 +28,10 @@ function defaults(params) {
   // Object.assign requires at least nodejs v4, request only test/supports v6+
   defaultParams = Object.assign({}, defaultParams, params);
 
-  var cloudscraper = requestModule.defaults.call(this, defaultParams, requester);
+  var cloudscraper = requestModule.defaults
+      .call(this, defaultParams, function(options) {
+        return performRequest(options, true);
+      });
 
   // There's no safety net here, any changes apply to all future requests
   // that are made with this instance and derived instances
@@ -45,7 +49,7 @@ function defaults(params) {
   return cloudscraper;
 }
 
-function requester(options) {
+function performRequest(options, isFirstRequest) {
   // Prevent overwriting realEncoding in subsequent calls
   if (!('realEncoding' in options)) {
     // Can't just do the normal options.encoding || 'utf8'
@@ -65,17 +69,19 @@ function requester(options) {
       + 'got ' + typeof(options.challengesToSolve) + ' instead.');
   }
 
-  var createRequest = options.requester;
+  // This should be the default export of either request or request-promise.
+  var requester = options.requester;
 
-  if (typeof createRequest !== 'function') {
+  if (typeof requester !== 'function') {
     throw new TypeError('Expected `requester` option to be a function, got '
-        + typeof(createRequest) + ' instead.');
+        + typeof(requester) + ' instead.');
   }
 
-  var request = createRequest(options);
-  // This should be a user supplied callback or request-promise's default callback
+  var request = requester(options);
+  // This should be a user supplied callback or request-promise's callback.
   var callback = request.callback;
 
+  // If the requester is not request-promise, ensure we get a callback.
   if (typeof callback !== 'function') {
     throw new TypeError('Expected a callback function, got '
         + typeof(callback) + ' instead.');
@@ -88,30 +94,39 @@ function requester(options) {
     called = true;
     var result = { error: error, response: response, body: body };
 
-    processRequestResponse(options, result, callback);
+    if (isFirstRequest) {
+      // We only need the callback from the first request.
+      // The other callbacks can be safely ignored.
+      options.callback = callback;
+    }
+
+    processRequestResponse(options, result, options.callback);
   };
 
   return request;
 }
 
-function processRequestResponse(options, requestResult, callback) {
-  var error = requestResult.error;
-  var response = requestResult.response;
-  var body = requestResult.body;
-  var validationError;
+function processRequestResponse(options, result, callback) {
+  var error = result.error;
+  var response = result.response;
+  var body = result.body;
   var stringBody;
   var isChallengePresent;
   var isRedirectChallengePresent;
 
   if (error || !body || !body.toString) {
     // Pure request error (bad connection, wrong url, etc)
-    return callback({ errorType: 0, error: error }, response, body);
+    error = new errors.RequestError(error, options, response);
+
+    return callback(error, response, body);
   }
 
   stringBody = body.toString('utf8');
 
-  if (validationError = checkForErrors(error, stringBody)) {
-    return callback(validationError, response, body);
+  try {
+    validate(response, stringBody, options);
+  } catch (error) {
+    return callback(error, response, body);
   }
 
   isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
@@ -119,7 +134,11 @@ function processRequestResponse(options, requestResult, callback) {
   // isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
 
   if (isChallengePresent && options.challengesToSolve === 0) {
-    return callback({ errorType: 4 }, response, body);
+    var cause = 'Cloudflare challenge loop';
+    error = new errors.CloudflareError(cause, options, response);
+    error.errorType = 4;
+
+    return callback(error, response, body);
   }
 
   // If body contains specified string, solve challenge
@@ -131,23 +150,24 @@ function processRequestResponse(options, requestResult, callback) {
     setCookieAndReload(response, stringBody, options, callback);
   } else {
     // All is good
-    processResponseBody(options, error, response, body, callback);
+    processResponseBody(response, body, options, callback);
   }
 }
 
-function checkForErrors(error, body) {
+function validate(response, body, options) {
   var match;
 
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
-    return { errorType: 1 };
+    throw new errors.CaptchaError('captcha', options, response);
   }
 
   // trying to find '<span class="cf-error-code">1006</span>'
   match = body.match(/<\w+\s+class="cf-error-code">(.*)<\/\w+>/i);
 
   if (match) {
-    return { errorType: 2, error: parseInt(match[1]) };
+    var code = parseInt(match[1]);
+    throw new errors.CloudflareError(code, options, response);
   }
 
   return false;
@@ -159,9 +179,14 @@ function solveChallenge(response, body, options, callback) {
   var jsChlVc;
   var answerResponse;
   var answerUrl;
+  var error;
+  var cause;
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract challengeId (jschl_vc) from page'}, response, body);
+    cause = 'challengeId (jschl_vc) extraction failed';
+    error = new errors.ParserError(cause, options, response);
+
+    return callback(error, response, body);
   }
 
   jsChlVc = challenge[1];
@@ -169,7 +194,10 @@ function solveChallenge(response, body, options, callback) {
   challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract method from setTimeOut wrapper'}, response, body);
+    cause = 'setTimeout callback extraction failed';
+    error = new errors.ParserError(cause, options, response);
+
+    return callback(error, response, body);
   }
 
   var challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
@@ -187,8 +215,11 @@ function solveChallenge(response, body, options, callback) {
       'jschl_answer': (eval(challenge) + response.request.host.length),
       'pass': challenge_pass
     };
-  } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
+  } catch (error) {
+    error.message = 'Challenge evaluation failed: ' + error.message;
+    error = new errors.ParserError(error, options, response);
+
+    return callback(error, response, body);
   }
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
@@ -202,14 +233,17 @@ function solveChallenge(response, body, options, callback) {
   options.challengesToSolve = options.challengesToSolve - 1;
 
   // Make request with answer
-  requester(options, callback);
+  performRequest(options, false);
 }
 
 function setCookieAndReload(response, body, options, callback) {
   var challenge = body.match(/S='([^']+)'/);
 
   if (!challenge) {
-    return callback({errorType: 3, error: 'I cant extract cookie generation code from page'}, response, body);
+    var cause = 'Cookie code extraction failed';
+    var error = new errors.ParserError(cause, options, response);
+
+    return callback(error, response, body);
   }
 
   var base64EncodedCode = challenge[1];
@@ -226,26 +260,36 @@ function setCookieAndReload(response, body, options, callback) {
     vm.runInNewContext(cookieSettingCode, sandbox);
 
     options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
-  } catch (err) {
-    return callback({errorType: 3, error: 'Error occurred during evaluation: ' +  err.message}, response, body);
+  } catch (error) {
+    error.message = 'Cookie code evaluation failed: ' + error.message;
+    error = new errors.ParserError(error, options, response);
+
+    return callback(error, response, body);
   }
 
   options.challengesToSolve = options.challengesToSolve - 1;
 
-  requester(options, callback);
+  performRequest(options, false);
 }
 
-function processResponseBody(options, error, response, body, callback) {
+function processResponseBody(response, body, options, callback) {
+  var error = null;
+
   if(typeof options.realEncoding === 'string') {
     body = body.toString(options.realEncoding);
+    // The resolveWithFullResponse option will resolve with the response object.
+    // This changes the response.body so it is as expected.
+    response.body = body;
+
     // In case of real encoding, try to validate the response
     // and find potential errors there.
     // If encoding is not provided, return response as it is
-    if (validationError = checkForErrors(error, body)) {
-      return callback(validationError, response, body);
+    try {
+      validate(response, body, options);
+    } catch (e) {
+      error = e;
     }
   }
-
 
   callback(error, response, body);
 }
