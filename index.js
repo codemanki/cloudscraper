@@ -92,25 +92,21 @@ function performRequest(options, isFirstRequest) {
     if (called) return;
 
     called = true;
-    var result = { error: error, response: response, body: body };
-
     if (isFirstRequest) {
       // We only need the callback from the first request.
       // The other callbacks can be safely ignored.
       options.callback = callback;
     }
 
-    processRequestResponse(options, result);
+    processRequestResponse(options, error, response, body);
   };
 
   return request;
 }
 
-function processRequestResponse(options, result) {
+function processRequestResponse(options, error, response, body) {
   var callback = options.callback;
-  var error = result.error;
-  var response = result.response;
-  var body = result.body;
+
   var stringBody;
   var isChallengePresent;
   var isRedirectChallengePresent;
@@ -176,6 +172,7 @@ function validate(options, response, body) {
 
 function solveChallenge(options, response, body) {
   var callback = options.callback;
+
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var host = response.request.host;
   var jsChlVc;
