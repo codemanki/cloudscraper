@@ -178,10 +178,9 @@ function solveChallenge(options, response, body) {
   var callback = options.callback;
 
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
-  var host = response.request.host;
+  var uri = response.request.uri;
   var jsChlVc;
   var answerResponse;
-  var answerUrl;
   var error;
   var cause;
 
@@ -215,7 +214,7 @@ function solveChallenge(options, response, body) {
   try {
     answerResponse = {
       'jschl_vc': jsChlVc,
-      'jschl_answer': (eval(challenge) + response.request.host.length),
+      'jschl_answer': (eval(challenge) + uri.hostname.length),
       'pass': challenge_pass
     };
   } catch (error) {
@@ -225,13 +224,11 @@ function solveChallenge(options, response, body) {
     return callback(error, response, body);
   }
 
-  answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
-
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
-  // The original uri should be placed as referer.
-  options.headers['Referer'] = response.request.uri.href;
-  options.uri = answerUrl;
+  // Use the original uri as the referer and to construct the answer url.
+  options.headers['Referer'] = uri.href;
+  options.uri = uri.protocol + '//' + uri.hostname + '/cdn-cgi/l/chk_jschl';
   options.qs = answerResponse;
   options.challengesToSolve = options.challengesToSolve - 1;
 

@@ -1,7 +1,6 @@
 var request = require('./rp');
 var sinon   = require('sinon');
 var fs      = require('fs');
-var url     = require('url');
 var path    = require('path');
 
 var defaultParams = {
@@ -34,23 +33,12 @@ module.exports = {
     return cache[fileName];
   },
   defaultParams: defaultParams,
-  // This method returns properly faked response object for request lib, which is used inside cloudscraper library
   fakeResponse: function(template) {
-    var fake = Object.assign({
+    return Object.assign({
       statusCode: 200,
       headers: defaultParams.headers,
       body: ''
     }, template);
-
-    // The uri property of the fake response is only for tests to simplify fake request creation.
-    var uri = url.parse(fake.uri || defaultParams.uri);
-    // The actual request object is more complicated but this library only uses the uri parts.
-    fake.request = {
-      host: uri.host,
-      uri: uri
-    };
-
-    return fake;
   },
   extendParams: function(params) {
     // Extend target with the default params and provided params
@@ -76,7 +64,18 @@ module.exports = {
     Object.freeze(fake);
     Object.keys(fake).forEach(function (key) {
       if (!Object.isFrozen(fake[key]) && !Buffer.isBuffer(fake[key])) {
-        Object.freeze(fake[key]);
+        // Mark all existing properties as non-configurable and non-writable.
+        var target = fake[key];
+        Object.keys(target).forEach(function (key) {
+          var desc = Object.getOwnPropertyDescriptor(target, key);
+          if (desc.configurable) {
+            desc.configurable = false;
+            if (desc.writable !== undefined) {
+              desc.writable = false;
+            }
+            Object.defineProperty(target, key, desc);
+          }
+        });
       }
     });
 
@@ -98,6 +97,8 @@ module.exports = {
           return callback;
         },
         set: function(callback) {
+          // Add the final property needed to fake the response.
+          fake.response.request = instance;
           // This won't callback unless cloudscraper replaces the callback.
           callback(fake.error, fake.response, fake.body);
         }

@@ -14,6 +14,7 @@ describe('Cloudscraper', function () {
   var Request;
 
   beforeEach(function () {
+    helper.defaultParams.jar = request.jar();
     sandbox = sinon.createSandbox();
     // Prepare stubbed Request for each test
     Request = sandbox.stub(request, 'Request');
@@ -206,7 +207,7 @@ describe('Cloudscraper', function () {
         'pass': '1543827246.024-hvxyNA3rOg'
       },
       headers: {
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': 'http://example-site.dev/cdn-cgi/l/chk_jschl?jschl_vc=427c2b1cd4fba29608ee81b200e94bfa&jschl_answer=10.66734594&pass=1543827239.915-44n9IE20mS'
       },
       challengesToSolve: 1
     });
@@ -343,6 +344,58 @@ describe('Cloudscraper', function () {
     });
 
     expect(promise).to.eventually.equal(secondResponse.body).and.notify(done);
+  });
+
+  it('should not use proxy\'s uri', function (done) {
+
+    var firstParams = helper.extendParams({
+      proxy: 'https://example-proxy-site.dev/path/'
+    });
+
+    var firstResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_03_12_2018_1.html')
+    });
+
+    Request.onFirstCall()
+        .callsFake(helper.fakeRequest({ response: firstResponse }));
+
+    var secondParams = helper.extendParams({
+      proxy: 'https://example-proxy-site.dev/path/',
+      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: {
+        'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
+        'jschl_answer': -5.33265406 + 'example-site.dev'.length, // -5.33265406 is a answer to cloudflares js challenge
+                                                                 // in this particular case
+        'pass': '1543827239.915-44n9IE20mS'
+      },
+      headers: {
+        'Referer': 'http://example-site.dev/path/'
+      },
+      challengesToSolve: 2
+    });
+
+    var secondResponse = helper.fakeResponse({ body: requestedPage });
+
+    Request.onSecondCall()
+        .callsFake(helper.fakeRequest({ response: secondResponse }));
+
+    var options = { uri: uri, proxy: 'https://example-proxy-site.dev/path/' };
+
+    var promise = cloudscraper.get(options, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+
+      expect(response).to.be.equal(secondResponse);
+      expect(body).to.be.equal(secondResponse.body);
+    });
+
+    expect(promise).to.eventually.equal(secondResponse.body).and.notify(done);
+
+    this.clock.tick(14000); // tick the timeout
   });
 
   it('should define custom defaults function', function (done) {
