@@ -100,13 +100,14 @@ function performRequest(options, isFirstRequest) {
       options.callback = callback;
     }
 
-    processRequestResponse(options, result, options.callback);
+    processRequestResponse(options, result);
   };
 
   return request;
 }
 
-function processRequestResponse(options, result, callback) {
+function processRequestResponse(options, result) {
+  var callback = options.callback;
   var error = result.error;
   var response = result.response;
   var body = result.body;
@@ -144,13 +145,13 @@ function processRequestResponse(options, result, callback) {
   // If body contains specified string, solve challenge
   if (isChallengePresent) {
     setTimeout(function() {
-      solveChallenge(response, stringBody, options, callback);
+      solveChallenge(response, stringBody, options);
     }, options.cloudflareTimeout);
   } else if (isRedirectChallengePresent) {
-    setCookieAndReload(response, stringBody, options, callback);
+    setCookieAndReload(response, stringBody, options);
   } else {
     // All is good
-    processResponseBody(response, body, options, callback);
+    processResponseBody(response, body, options);
   }
 }
 
@@ -173,7 +174,8 @@ function validate(response, body, options) {
   return false;
 }
 
-function solveChallenge(response, body, options, callback) {
+function solveChallenge(response, body, options) {
+  var callback = options.callback;
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var host = response.request.host;
   var jsChlVc;
@@ -236,9 +238,10 @@ function solveChallenge(response, body, options, callback) {
   performRequest(options, false);
 }
 
-function setCookieAndReload(response, body, options, callback) {
-  var challenge = body.match(/S='([^']+)'/);
+function setCookieAndReload(response, body, options) {
+  var callback = options.callback;
 
+  var challenge = body.match(/S='([^']+)'/);
   if (!challenge) {
     var cause = 'Cookie code extraction failed';
     var error = new errors.ParserError(cause, options, response);
@@ -272,7 +275,8 @@ function setCookieAndReload(response, body, options, callback) {
   performRequest(options, false);
 }
 
-function processResponseBody(response, body, options, callback) {
+function processResponseBody(response, body, options) {
+  var callback = options.callback;
   var error = null;
 
   if(typeof options.realEncoding === 'string') {
