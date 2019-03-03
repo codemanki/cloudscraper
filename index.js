@@ -34,11 +34,11 @@ function defaults(params) {
       });
 
   // There's no safety net here, any changes apply to all future requests
-  // that are made with this instance and derived instances
+  // that are made with this instance and derived instances.
   cloudscraper.defaultParams = defaultParams;
 
   // Ensure this instance gets a copy of our custom defaults function
-  // It's not necessary on subsequent calls
+  // and afterwards, it will be copied over automatically.
   if (isRequestModule) {
     cloudscraper.defaults = defaults;
   }
@@ -49,6 +49,8 @@ function defaults(params) {
   return cloudscraper;
 }
 
+// This function is wrapped to ensure that we get new options on first call.
+// The options object is reused in subsequent calls when calling it directly.
 function performRequest(options, isFirstRequest) {
   // Prevent overwriting realEncoding in subsequent calls
   if (!('realEncoding' in options)) {
@@ -61,7 +63,6 @@ function performRequest(options, isFirstRequest) {
     }
   }
 
-  // Requester is wrapped by request to ensure that we get new options on first call
   options.encoding = null;
 
   if (isNaN(options.challengesToSolve)) {
@@ -79,6 +80,7 @@ function performRequest(options, isFirstRequest) {
 
   var request = requester(options);
   // This should be a user supplied callback or request-promise's callback.
+  // The user supplied callback is always wrapped by requester.
   var callback = request.callback;
 
   // If the requester is not request-promise, ensure we get a callback.
@@ -92,24 +94,23 @@ function performRequest(options, isFirstRequest) {
     if (called) return;
 
     called = true;
-    var result = { error: error, response: response, body: body };
-
     if (isFirstRequest) {
       // We only need the callback from the first request.
       // The other callbacks can be safely ignored.
       options.callback = callback;
     }
 
-    processRequestResponse(options, result, options.callback);
+    processRequestResponse(options, error, response, body);
   };
 
   return request;
 }
 
-function processRequestResponse(options, result, callback) {
-  var error = result.error;
-  var response = result.response;
-  var body = result.body;
+// The argument convention is options first where possible, options
+// always before response, and body always after response.
+function processRequestResponse(options, error, response, body) {
+  var callback = options.callback;
+
   var stringBody;
   var isChallengePresent;
   var isRedirectChallengePresent;
@@ -124,7 +125,7 @@ function processRequestResponse(options, result, callback) {
   stringBody = body.toString('utf8');
 
   try {
-    validate(response, stringBody, options);
+    validate(options, response, stringBody);
   } catch (error) {
     return callback(error, response, body);
   }
@@ -144,17 +145,17 @@ function processRequestResponse(options, result, callback) {
   // If body contains specified string, solve challenge
   if (isChallengePresent) {
     setTimeout(function() {
-      solveChallenge(response, stringBody, options, callback);
+      solveChallenge(options, response, stringBody);
     }, options.cloudflareTimeout);
   } else if (isRedirectChallengePresent) {
-    setCookieAndReload(response, stringBody, options, callback);
+    setCookieAndReload(options, response, stringBody);
   } else {
     // All is good
-    processResponseBody(response, body, options, callback);
+    processResponseBody(options, response, body);
   }
 }
 
-function validate(response, body, options) {
+function validate(options, response, body) {
   var match;
 
   // Finding captcha
@@ -162,7 +163,7 @@ function validate(response, body, options) {
     throw new errors.CaptchaError('captcha', options, response);
   }
 
-  // trying to find '<span class="cf-error-code">1006</span>'
+  // Trying to find '<span class="cf-error-code">1006</span>'
   match = body.match(/<\w+\s+class="cf-error-code">(.*)<\/\w+>/i);
 
   if (match) {
@@ -173,7 +174,9 @@ function validate(response, body, options) {
   return false;
 }
 
-function solveChallenge(response, body, options, callback) {
+function solveChallenge(options, response, body) {
+  var callback = options.callback;
+
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var host = response.request.host;
   var jsChlVc;
@@ -224,21 +227,22 @@ function solveChallenge(response, body, options, callback) {
 
   answerUrl = response.request.uri.protocol + '//' + host + '/cdn-cgi/l/chk_jschl';
 
-  // Prevent reusing the headers object in subsequent calls as this affects tests
+  // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
-  // Original uri should be placed as referer
+  // The original uri should be placed as referer.
   options.headers['Referer'] = response.request.uri.href;
   options.uri = answerUrl;
   options.qs = answerResponse;
   options.challengesToSolve = options.challengesToSolve - 1;
 
-  // Make request with answer
+  // Make request with answer.
   performRequest(options, false);
 }
 
-function setCookieAndReload(response, body, options, callback) {
-  var challenge = body.match(/S='([^']+)'/);
+function setCookieAndReload(options, response, body) {
+  var callback = options.callback;
 
+  var challenge = body.match(/S='([^']+)'/);
   if (!challenge) {
     var cause = 'Cookie code extraction failed';
     var error = new errors.ParserError(cause, options, response);
@@ -272,20 +276,20 @@ function setCookieAndReload(response, body, options, callback) {
   performRequest(options, false);
 }
 
-function processResponseBody(response, body, options, callback) {
+function processResponseBody(options, response, body) {
+  var callback = options.callback;
   var error = null;
 
   if(typeof options.realEncoding === 'string') {
     body = body.toString(options.realEncoding);
-    // The resolveWithFullResponse option will resolve with the response object.
-    // This changes the response.body so it is as expected.
+    // The resolveWithFullResponse option will resolve with the response
+    // object. This changes the response.body so it is as expected.
     response.body = body;
 
-    // In case of real encoding, try to validate the response
-    // and find potential errors there.
-    // If encoding is not provided, return response as it is
+    // In case of real encoding, try to validate the response and find
+    // potential errors there, otherwise return the response as is.
     try {
-      validate(response, body, options);
+      validate(options, response, body);
     } catch (e) {
       error = e;
     }
