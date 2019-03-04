@@ -80,27 +80,22 @@ module.exports = {
     });
 
     return function Request(params) {
-      // The promise returned by request-promise won't resolve until
-      // it's callback is called. The problem is that we need to callback
-      // after the constructor returns to simulate a real request/response.
       var instance = request(params);
 
-      // This is the callback that cloudscraper should replace.
-      var callback = instance.callback;
+      // This is a hack to prevent sending events to early. See #104
+      Object.defineProperty(instance, 'cloudscraper', {
+        set: function() {
+          // Add the required convenience property to fake the response.
+          fake.response.request = this;
 
-      // We don't want to callback with the fake result until
-      // after the constructor returns thus define a property getter/setter
-      // and wait for cloudscraper to set it's own callback.
-      Object.defineProperty(instance, 'callback', {
-        get: function() {
-          // Returns request-promise's callback.
-          return callback;
+          if (fake.error !== null) {
+            this.emit('error', fake.error);
+          } else {
+            this.emit('complete', fake.response, fake.body);
+          }
         },
-        set: function(callback) {
-          // Add the final property needed to fake the response.
-          fake.response.request = instance;
-          // This won't callback unless cloudscraper replaces the callback.
-          callback(fake.error, fake.response, fake.body);
+        get: function() {
+          return true;
         }
       });
 

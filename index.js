@@ -79,30 +79,30 @@ function performRequest(options, isFirstRequest) {
   }
 
   var request = requester(options);
-  // This should be a user supplied callback or request-promise's callback.
-  // The user supplied callback is always wrapped by requester.
-  var callback = request.callback;
 
   // If the requester is not request-promise, ensure we get a callback.
-  if (typeof callback !== 'function') {
+  if (typeof request.callback !== 'function') {
     throw new TypeError('Expected a callback function, got '
-        + typeof(callback) + ' instead.');
+        + typeof(request.callback) + ' instead.');
   }
 
-  var called = false;
-  request.callback = function(error, response, body) {
-    if (called) return;
+  // We only need the callback from the first request.
+  // The other callbacks can be safely ignored.
+  if (isFirstRequest) {
+    // This should be a user supplied callback or request-promise's callback.
+    // The callback is always wrapped/bound to the request instance.
+    options.callback = request.callback;
+  }
 
-    called = true;
-    if (isFirstRequest) {
-      // We only need the callback from the first request.
-      // The other callbacks can be safely ignored.
-      options.callback = callback;
-    }
+  // The error event only provides an error argument.
+  request.removeAllListeners('error')
+      .once('error', processRequestResponse.bind(null, options));
+  // The complete event only provides response and body arguments.
+  request.removeAllListeners('complete')
+      .once('complete', processRequestResponse.bind(null, options, null));
 
-    processRequestResponse(options, error, response, body);
-  };
-
+  // Indicate that this is a cloudscraper request, required by test/helper.
+  request.cloudscraper = true;
   return request;
 }
 
