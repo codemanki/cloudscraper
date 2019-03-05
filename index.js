@@ -180,6 +180,8 @@ function solveChallenge(options, response, body) {
   var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var uri = response.request.uri;
   var jsChlVc;
+  var challenge_pass;
+  var answer;
   var answerResponse;
   var error;
   var cause;
@@ -202,7 +204,7 @@ function solveChallenge(options, response, body) {
     return callback(error, response, body);
   }
 
-  var challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
+  challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
 
   challenge = challenge[1];
 
@@ -212,9 +214,11 @@ function solveChallenge(options, response, body) {
   challenge = challenge.replace(/'; \d+'/g, '');
 
   try {
+    answer = vm.runInNewContext(challenge, undefined, { timeout: 5000 });
+
     answerResponse = {
       'jschl_vc': jsChlVc,
-      'jschl_answer': (eval(challenge) + uri.hostname.length),
+      'jschl_answer': (answer + uri.hostname.length),
       'pass': challenge_pass
     };
   } catch (error) {
@@ -238,6 +242,7 @@ function solveChallenge(options, response, body) {
 
 function setCookieAndReload(options, response, body) {
   var callback = options.callback;
+  var jar = options.jar;
 
   var challenge = body.match(/S='([^']+)'/);
   if (!challenge) {
@@ -258,9 +263,9 @@ function setCookieAndReload(options, response, body) {
   };
 
   try {
-    vm.runInNewContext(cookieSettingCode, sandbox);
+    vm.runInNewContext(cookieSettingCode, sandbox, { timeout: 5000 });
 
-    options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
+    jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (error) {
     error.message = 'Cookie code evaluation failed: ' + error.message;
     error = new errors.ParserError(error, options, response);
