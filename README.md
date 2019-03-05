@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/codemanki/cloudscraper.svg?branch=master)](https://travis-ci.org/codemanki/cloudscraper)
+
 cloudscraper
 ============
 
