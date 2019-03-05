@@ -1,8 +1,5 @@
 'use strict';
 
-var original = require('request-promise-core/errors');
-var OriginalError = original.RequestError;
-
 // The purpose of this library is two-fold.
 // 1. Have errors consistent with request/promise-core
 // 2. Prevent request/promise core from wrapping our errors
@@ -11,40 +8,15 @@ var OriginalError = original.RequestError;
 // 1. There is a non-enumerable errorType attribute.
 // 2. The error constructor is hidden from the stacktrace.
 
-function create(name, errorType) {
-  function CustomError(cause, options, response) {
+var EOL = require('os').EOL;
+var BUG_REPORT = format([
+  '### Cloudflare may have changed their technique, or there may be a bug.',
+  '### Bug Reports: https://github.com/codemanki/cloudscraper/issues',
+  '### Check the detailed exception message that follows for the cause.'
+]);
 
-    // This prevents nasty things e.g. `error.cause.error` and
-    // is why replacing the original RequestError is necessary.
-    if (cause instanceof OriginalError) {
-      return cause;
-    }
-
-    OriginalError.apply(this, arguments);
-
-    // Change the name to match this constructor
-    this.name = name;
-
-    if (Error.captureStackTrace) { // required for non-V8 environments
-      // Provide a proper stack trace that hides this constructor
-      Error.captureStackTrace(this, CustomError);
-    }
-  }
-
-  CustomError.prototype = Object.create(OriginalError.prototype);
-  CustomError.prototype.constructor = CustomError;
-  // Keeps things stealthy by defining errorType on the prototype.
-  // This makes it non-enumerable and safer to add.
-  CustomError.prototype.errorType = errorType;
-
-  Object.setPrototypeOf(CustomError, Object.getPrototypeOf(OriginalError));
-  Object.defineProperty(CustomError, 'name', {
-    configurable: true,
-    value: name
-  });
-
-  return CustomError;
-}
+var original = require('request-promise-core/errors');
+var OriginalError = original.RequestError;
 
 var RequestError    = create('RequestError', 0);
 var CaptchaError    = create('CaptchaError', 1);
@@ -73,3 +45,46 @@ Object.assign(module.exports, original, {
   ParserError: ParserError,
   CloudflareError: CloudflareError
 });
+
+function create(name, errorType) {
+  function CustomError(cause, options, response) {
+
+    // This prevents nasty things e.g. `error.cause.error` and
+    // is why replacing the original RequestError is necessary.
+    if (cause instanceof OriginalError) {
+      return cause;
+    }
+
+    OriginalError.apply(this, arguments);
+
+    // Change the name to match this constructor
+    this.name = name;
+
+    if (this instanceof ParserError) {
+      this.message = BUG_REPORT + this.message;
+    }
+
+    if (Error.captureStackTrace) { // required for non-V8 environments
+      // Provide a proper stack trace that hides this constructor
+      Error.captureStackTrace(this, CustomError);
+    }
+  }
+
+  CustomError.prototype = Object.create(OriginalError.prototype);
+  CustomError.prototype.constructor = CustomError;
+  // Keeps things stealthy by defining errorType on the prototype.
+  // This makes it non-enumerable and safer to add.
+  CustomError.prototype.errorType = errorType;
+
+  Object.setPrototypeOf(CustomError, Object.getPrototypeOf(OriginalError));
+  Object.defineProperty(CustomError, 'name', {
+    configurable: true,
+    value: name
+  });
+
+  return CustomError;
+}
+
+function format(lines) {
+  return EOL + lines.join(EOL) + EOL + EOL;
+}
