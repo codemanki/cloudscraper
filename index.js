@@ -1,6 +1,7 @@
 var vm = require('vm');
 var requestModule = require('request-promise');
 var errors = require('./errors');
+
 var VM_OPTIONS = {
   timeout: 5000
 };
@@ -180,43 +181,47 @@ function validate(options, response, body) {
 function solveChallenge(options, response, body) {
   var callback = options.callback;
 
-  var challenge = body.match(/name="jschl_vc" value="(\w+)"/);
   var uri = response.request.uri;
-  var jsChlVc;
-  var answerResponse;
-  var solvedChallenge;
+  // The JS challenge to be evaluated for answer/response.
+  var challenge;
+  // The result of challenge being evaluated in sandbox
+  var answer;
+  // The query string to send back to Cloudflare
+  // var payload = { jschl_vc, jschl_answer, pass };
+  var payload = {};
+
+  var match;
   var error;
   var cause;
 
-  if (!challenge) {
+  match = body.match(/name="jschl_vc" value="(\w+)"/);
+
+  if (!match) {
     cause = 'challengeId (jschl_vc) extraction failed';
     error = new errors.ParserError(cause, options, response);
 
     return callback(error, response, body);
   }
 
-  jsChlVc = challenge[1];
+  payload.jschl_vc = match[1];
 
-  challenge = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
+  match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
 
-  if (!challenge) {
+  if (!match) {
     cause = 'setTimeout callback extraction failed';
     error = new errors.ParserError(cause, options, response);
 
     return callback(error, response, body);
   }
 
-  var challenge_pass = body.match(/name="pass" value="(.+?)"/)[1];
-
-  challenge = challenge[1];
-
-  challenge = challenge.replace(/a\.value =(.+?) \+ .+?;/i, '$1');
-
-  challenge = challenge.replace(/\s{3,}[a-z](?: = |\.).+/g, '');
-  challenge = challenge.replace(/'; \d+'/g, '');
+  challenge = match[1]
+      .replace(/a\.value =(.+?) \+ .+?;/i, '$1')
+      .replace(/\s{3,}[a-z](?: = |\.).+/g, '')
+      .replace(/'; \d+'/g, '');
 
   try {
-    solvedChallenge = vm.runInNewContext(challenge, Object.create(null), VM_OPTIONS);
+    answer = vm.runInNewContext(challenge, undefined, VM_OPTIONS);
+    payload.jschl_answer = answer + uri.hostname.length;
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
     error = new errors.ParserError(error, options, response);
@@ -224,18 +229,24 @@ function solveChallenge(options, response, body) {
     return callback(error, response, body);
   }
 
-  answerResponse = {
-    'jschl_vc': jsChlVc,
-    'jschl_answer': (solvedChallenge + uri.hostname.length),
-    'pass': challenge_pass
-  };
-  
+  match = body.match(/name="pass" value="(.+?)"/);
+
+  if (!match) {
+    cause = 'Attribute (pass) value extraction failed';
+    error = new errors.ParserError(cause, options, response);
+
+    return callback(error, response, body);
+  }
+
+  payload.pass = match[1];
+
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the answer url.
   options.headers['Referer'] = uri.href;
   options.uri = uri.protocol + '//' + uri.hostname + '/cdn-cgi/l/chk_jschl';
-  options.qs = answerResponse;
+  // Set the query string and decrement the number of challenges to solve.
+  options.qs = payload;
   options.challengesToSolve = options.challengesToSolve - 1;
 
   // Make request with answer.
