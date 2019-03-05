@@ -1,6 +1,9 @@
 var vm = require('vm');
 var requestModule = require('request-promise');
 var errors = require('./errors');
+var VM_OPTIONS = {
+  timeout: 5000
+};
 
 module.exports = defaults.call(requestModule);
 
@@ -181,6 +184,7 @@ function solveChallenge(options, response, body) {
   var uri = response.request.uri;
   var jsChlVc;
   var answerResponse;
+  var solvedChallenge;
   var error;
   var cause;
 
@@ -212,11 +216,7 @@ function solveChallenge(options, response, body) {
   challenge = challenge.replace(/'; \d+'/g, '');
 
   try {
-    answerResponse = {
-      'jschl_vc': jsChlVc,
-      'jschl_answer': (eval(challenge) + uri.hostname.length),
-      'pass': challenge_pass
-    };
+    solvedChallenge = vm.runInNewContext(challenge, Object.create(null), VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
     error = new errors.ParserError(error, options, response);
@@ -224,6 +224,12 @@ function solveChallenge(options, response, body) {
     return callback(error, response, body);
   }
 
+  answerResponse = {
+    'jschl_vc': jsChlVc,
+    'jschl_answer': (solvedChallenge + uri.hostname.length),
+    'pass': challenge_pass
+  };
+  
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the answer url.
@@ -258,7 +264,7 @@ function setCookieAndReload(options, response, body) {
   };
 
   try {
-    vm.runInNewContext(cookieSettingCode, sandbox);
+    vm.runInNewContext(cookieSettingCode, sandbox, VM_OPTIONS);
 
     options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (error) {
