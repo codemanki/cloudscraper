@@ -398,6 +398,68 @@ describe('Cloudscraper', function () {
     this.clock.tick(14000); // tick the timeout
   });
 
+  it('should reuse the provided cookie jar', function(done) {
+    var customJar = request.jar();
+
+    var firstParams = helper.extendParams({ jar: customJar });
+
+    var firstResponse = helper.fakeResponse({
+      body: helper.getFixture('js_challenge_cookie.html')
+    });
+
+    // Cloudflare is enabled for site.
+    // It returns a redirecting page if a (session) cookie is unset.
+    Request.onFirstCall()
+        .callsFake(helper.fakeRequest({ response: firstResponse }));
+
+    var secondParams = helper.extendParams({
+      jar: customJar,
+      challengesToSolve: 2
+    });
+
+    var secondResponse = helper.fakeResponse({ body: requestedPage });
+
+    // Only callback with the second response if the cookie string matches
+    var matchCookie = sinon.match(function (params) {
+      return params.jar.getCookieString(uri) === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a';
+    });
+
+    // Prevent a matching error if for some reason params.jar is missing or invalid.
+    var matchParams = sinon.match.has('jar', sinon.match.object).and(matchCookie);
+
+    Request.withArgs(matchParams)
+        .callsFake(helper.fakeRequest({ response: secondResponse }));
+
+    // We need to override cloudscraper's default jar for this test
+    var options = { uri: uri, jar: customJar };
+
+    customJar.setCookie('custom cookie', 'http://custom-site.dev/');
+
+    cloudscraper.get(options, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+
+      expect(response).to.be.equal(secondResponse);
+      expect(body).to.be.equal(secondResponse.body);
+
+      var customCookie = customJar.getCookieString('http://custom-site.dev/');
+      expect(customCookie).to.equal('custom cookie');
+
+      cloudscraper.get(options, function(error, response, body) {
+        expect(error).to.be.null;
+
+        expect(Request.thirdCall.args[0].jar).to.equal(customJar);
+        customCookie = customJar.getCookieString('http://custom-site.dev/');
+        expect(customCookie).to.equal('custom cookie');
+
+        done();
+      });
+    });
+  });
+
   it('should define custom defaults function', function (done) {
     expect(cloudscraper.defaults).to.not.equal(request.defaults);
 
