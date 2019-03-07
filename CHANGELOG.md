@@ -12,6 +12,8 @@
 - `cloudflareTimeout` option can be defined to speed up waiting time
 - Challenge evaluation is done in a sandbox to avoid potential secutiry issues
 - Default [request methods](https://github.com/request/request#requestmethod) are available
+- Custom cookie jar can now be passed [#103](https://github.com/codemanki/cloudscraper/issues/102)
+- Proxies support [PR#101](https://github.com/codemanki/cloudscraper/pull/101)
 - MIT license
 
 ### v2.0.1 (02/03/2019)
