@@ -180,7 +180,7 @@ Let me know, by opening [issue](https://github.com/codemanki/cloudscraper/issues
 
 WAT
 ===========
-Current cloudflare implementation requires browser to respect the timeout of 5 seconds and cloudscraper mimics this behaviour. So everytime you call `cloudscraper.get/post` you should expect it to return result after minimum 6 seconds. If you want to change this behaviour, you would need to make a generic request as desceribed in above and pass `cloudflareTimeout` options with your value. But be aware that cloudflare might track this timeout and use ir against you ;)
+Current cloudflare implementation requires browser to respect the timeout of 5 seconds and cloudscraper mimics this behaviour. So everytime you call `cloudscraper.get/post` you should expect it to return result after minimum 6 seconds. If you want to change this behaviour, you would need to make a generic request as desceribed in above and pass `cloudflareTimeout` options with your value. But be aware that cloudflare might track this timeout and use it against you ;)
 
 ## TODO
  - [x] Check for recaptcha
@@ -195,7 +195,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [x] Promisification
 
 ## Kudos to contributors
- - [Dwayne](https://github.com/pro-src) by himself rewrote the whole library, closed bunch of issues and feature requests. Praise him for 3.0.0 version <3
+ - [Dwayne](https://github.com/pro-src) by himself rewrote the whole library, closed bunch of issues and feature requests. Praise him for 3.0.0 version ❤️
  - [roflmuffin](https://github.com/roflmuffin)
  - [Colecf](https://github.com/Colecf)
  - [Jeongbong Seo](https://github.com/jngbng)
