@@ -29,6 +29,22 @@ __Unfortunately, there is no support for handling a CAPTCHA, if the response con
 
 If you notice that for some reason cloudscraper stopped to work, do not hesitate and get in touch with me ( by creating an issue here, for example), so i can update it.
 
+Migration from v2 to v3
+============
+- Replace `cloudscraper.request(options)` with `cloudscraper(options)`
+- `cloudscraper.get()` and `cloudscraper.post()` method signatures are now 
+- If you are using custom promise support workarounds please remove them as cloudscraper now uses [request-promise](https://github.com/request/request-promise):
+```
+var cloudscraper = require('cloudscraper');
+var options = {
+  uri: 'https://website.com/',
+  method: 'GET'
+};
+cloudscraper(options).then(function(body) {
+  console.log(body);
+});
+```
+
 Install
 ============
 ```javascript
