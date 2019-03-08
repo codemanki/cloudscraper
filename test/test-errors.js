@@ -122,6 +122,35 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
+  it('should not error if error description is unavailable', function(done) {
+    // https://support.cloudflare.com/hc/en-us/sections/200820298-Error-Pages
+    // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
+    // Error codes can also be the same as the HTTP status code in the 5xx range.
+
+    var expectedResponse = helper.fakeResponse({
+      statusCode: 500,
+      body: helper.getFixture('access_denied.html').replace('1006', '5111')
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var promise = cloudscraper.get(uri, function (error, response, body) {
+      // errorType 2, means inner cloudflare error
+      expect(error).to.be.instanceOf(errors.CloudflareError);
+      expect(error).to.have.property('error', 5111);
+      expect(error.message).to.equal('5111');
+      expect(error).to.have.property('errorType', 2);
+
+      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(expectedResponse);
+      expect(body).to.be.equal(expectedResponse.body);
+    });
+
+    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
+  });
+
+
   it('should return error if cf presented more than 3 challenges in a row', function(done) {
     // The expected params for all subsequent calls to Request
     var expectedParams = helper.extendParams({
