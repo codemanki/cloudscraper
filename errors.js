@@ -1,28 +1,69 @@
 'use strict';
 
-// The purpose of this library is two-fold.
+// The purpose of this library:
 // 1. Have errors consistent with request/promise-core
 // 2. Prevent request/promise core from wrapping our errors
+// 3. Create descriptive errors.
 
 // There are two differences between these errors and the originals.
 // 1. There is a non-enumerable errorType attribute.
 // 2. The error constructor is hidden from the stacktrace.
 
 var EOL = require('os').EOL;
+var original = require('request-promise-core/errors');
+var http = require('http');
+
 var BUG_REPORT = format([
   '### Cloudflare may have changed their technique, or there may be a bug.',
   '### Bug Reports: https://github.com/codemanki/cloudscraper/issues',
   '### Check the detailed exception message that follows for the cause.'
 ]);
 
-var original = require('request-promise-core/errors');
+var ERROR_CODES = {
+  // Non-standard HTTP 5xx server error status codes
+  '522': 'Connection timed out',
+  '521': 'Web server is down',
+  '520': 'Web server is returning an unknown error',
+  '523': 'Origin is unreachable',
+  '524': 'A timeout occurred',
+  '525': 'SSL handshake failed',
+  '526': 'Invalid SSL certificate',
+  // Other codes
+  '1000': 'DNS points to prohibited IP',
+  '1001': 'DNS resolution error',
+  '1002': 'Restricted or DNS points to Prohibited IP',
+  '1003': 'Access Denied: Direct IP Access Not Allowed',
+  '1004': 'Host Not Configured to Serve Web Traffic',
+  '1006': 'Access Denied: Your IP address has been banned',
+  '1010': 'The owner of this website has banned your access based on your browser\'s signature',
+  '1011': 'Access Denied (Hotlinking Denied)',
+  '1012': 'Access Denied',
+  '1013': 'HTTP hostname and TLS SNI hostname mismatch',
+  '1016': 'Origin DNS error'
+};
+
+ERROR_CODES[1006] =
+    ERROR_CODES[1007] =
+        ERROR_CODES[1008] = 'Access Denied: Your IP address has been banned';
+
 var OriginalError = original.RequestError;
 
-var RequestError    = create('RequestError', 0);
-var CaptchaError    = create('CaptchaError', 1);
-var CloudflareError = create('CloudflareError', 2);
-var ParserError     = create('ParserError', 3);
-// errorType 4 is a CloudflareError so that constructor is reused.
+var RequestError = create('RequestError', 0);
+var CaptchaError = create('CaptchaError', 1);
+
+// errorType 4 is a CloudflareError so this constructor is reused.
+var CloudflareError = create('CloudflareError', 2, function (error) {
+  if (!isNaN(error.cause)) {
+    var description = ERROR_CODES[error.cause] || http.STATUS_CODES[error.cause];
+    if (description) {
+      error.message = error.cause + ', ' + description;
+    }
+  }
+});
+
+var ParserError = create('ParserError', 3, function (error) {
+  error.message = BUG_REPORT + error.message;
+});
 
 // The following errors originate from promise-core and it's dependents.
 // Give them an errorType for consistency.
@@ -46,7 +87,7 @@ Object.assign(module.exports, original, {
   CloudflareError: CloudflareError
 });
 
-function create(name, errorType) {
+function create(name, errorType, customize) {
   function CustomError(cause, options, response) {
 
     // This prevents nasty things e.g. `error.cause.error` and
@@ -60,8 +101,8 @@ function create(name, errorType) {
     // Change the name to match this constructor
     this.name = name;
 
-    if (this instanceof ParserError) {
-      this.message = BUG_REPORT + this.message;
+    if (typeof customize === 'function') {
+      customize(this);
     }
 
     if (Error.captureStackTrace) { // required for non-V8 environments
