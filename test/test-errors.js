@@ -265,6 +265,32 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
+  it('should return error if pass extraction fails', function(done) {
+    var expectedResponse = helper.fakeResponse({
+      statusCode: 503,
+      body: helper.getFixture('js_challenge_03_12_2018_1.html')
+    });
+
+    expectedResponse.body = expectedResponse.body.replace(/name="pass"/gm, '');
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error', 'Attribute (pass) value extraction failed');
+      expect(error).to.have.property('errorType', 3);
+
+      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(expectedResponse);
+      expect(body).to.be.equal(expectedResponse.body);
+    });
+
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
   it('should return error if challengeId extraction fails', function(done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
@@ -493,5 +519,25 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
+  });
+
+  it('should not error if Error.captureStackTrace is undefined', function () {
+    var desc = Object.getOwnPropertyDescriptor(Error, 'captureStackTrace');
+
+    Object.defineProperty(Error, 'captureStackTrace', {
+      configurable: true,
+      value: undefined
+    });
+
+    var spy = sinon.spy(function () {
+      throw new errors.RequestError();
+    });
+
+    try {
+      expect(spy).to.throw(errors.RequestError);
+    }
+    finally {
+      Object.defineProperty(Error, 'captureStackTrace', desc);
+    }
   });
 });
