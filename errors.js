@@ -20,21 +20,23 @@ var BUG_REPORT = format([
 ]);
 
 var ERROR_CODES = {
-  // Non-standard HTTP 5xx server error status codes
-  '522': 'Connection timed out',
-  '521': 'Web server is down',
+  // Non-standard 5xx server error HTTP status codes
   '520': 'Web server is returning an unknown error',
+  '521': 'Web server is down',
+  '522': 'Connection timed out',
   '523': 'Origin is unreachable',
   '524': 'A timeout occurred',
   '525': 'SSL handshake failed',
   '526': 'Invalid SSL certificate',
+  '527': 'Railgun Listener to Origin Error',
+  '530': 'Origin DNS error',
   // Other codes
   '1000': 'DNS points to prohibited IP',
   '1001': 'DNS resolution error',
   '1002': 'Restricted or DNS points to Prohibited IP',
   '1003': 'Access Denied: Direct IP Access Not Allowed',
   '1004': 'Host Not Configured to Serve Web Traffic',
-  '1006': 'Access Denied: Your IP address has been banned',
+  '1005': 'Access Denied: IP of banned ASN/ISP',
   '1010': 'The owner of this website has banned your access based on your browser\'s signature',
   '1011': 'Access Denied (Hotlinking Denied)',
   '1012': 'Access Denied',
