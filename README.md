@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/codemanki/cloudscraper.svg?branch=master)](https://travis-ci.org/codemanki/cloudscraper)
-
 cloudscraper
 ============
 
@@ -130,9 +128,23 @@ Cloudscraper wraps request and request-promise, so using cloudscraper is pretty 
     .catch(function (err) {
     });
   ```
+## Defaults method
 
-## Default options
-Cloudscraper exposes following options that areq required by default but might be changed. Please note that default options increase chances of correct work.
+`cloudscraper.defaults` is a very convenient way of extending the cloudscraper requests with any of your settings.
+
+```
+var cloudscraper = require('cloudscraper').defaults({ 'proxy': 'http://localproxy.com' });
+// Override headers
+var headers = { /* ... */ };
+var cloudscraper = require('cloudscraper').defaults({ headers: headers });
+
+cloudscraper(options, function(error, response, body) {
+  console.log(body)
+});
+```
+
+## Configuration
+Cloudscraper exposes following options that are required by default but might be changed. Please note that the default values increase chances of correct work.
 
 ```
 var options = {
@@ -157,8 +169,10 @@ cloudscraper(options, function(error, response, body) {
 });
 
 ```
+You can access default default configuration with `cloudscraper.defaultParams`
+
 ## Error object
-Cliudscraper error object inherits from `Error` has following fields:
+Cloudscraper error object inherits from `Error` has following fields:
   * `name` - `RequestError`/`CaptchaError`/`CloudflareError`/`ParserError`
   * `options` - The request options
   * `cause` - An alias for `error`
@@ -171,9 +185,11 @@ Where `errorType` can be following:
  - `3` this error is returned when library failed to parse and solve js challenge. `error` will be `String` with some details. :warning: :warning: __Most likely it means that cloudflare have changed their js challenge.__
  - `4` CF went into a loop and started to return challenge after challenge. If number of solved challenges is greater than `3` and another challenge is returned, throw an error
 
+Do not always rely on `error.cause` to be an error, it can be a string
+
 Running tests
 ============
-Clone this repo, do `npm install` and then just `grunt`
+Clone this repo, do `npm install` and then just `npm test`
 
 ### Unknown error? Library stopped working? ###
 Let me know, by opening [issue](https://github.com/codemanki/cloudscraper/issues) in this repo and i will update library asap. Please, provide url and body of page where cloudscraper failed.
@@ -184,7 +200,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
 
 ## TODO
  - [x] Check for recaptcha
- - [ ] Support cookies, so challenge can be solved once per session
+ - [x] Support cookies, so challenge can be solved once per session
  - [x] Support page with simple redirects
  - [x] Add proper testing
  - [x] Remove manual 302 processing, replace with `followAllRedirects` param
@@ -195,7 +211,7 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [x] Promisification
 
 ## Kudos to contributors
- - [Dwayne](https://github.com/pro-src) by himself rewrote the whole library, closed bunch of issues and feature requests. Praise him for 3.0.0 version ❤️
+ - [Dwayne](https://github.com/pro-src) by himself rewrote the whole library, closed bunch of issues and feature requests. Thank him for 3.0.0 version ❤️
  - [roflmuffin](https://github.com/roflmuffin)
  - [Colecf](https://github.com/Colecf)
  - [Jeongbong Seo](https://github.com/jngbng)
