@@ -89,9 +89,8 @@ Object.assign(module.exports, original, {
   CloudflareError: CloudflareError
 });
 
-function create(name, errorType, customize) {
-  function CustomError(cause, options, response) {
-
+function create (name, errorType, customize) {
+  function CustomError (cause, options, response) {
     // This prevents nasty things e.g. `error.cause.error` and
     // is why replacing the original RequestError is necessary.
     if (cause instanceof OriginalError) {
@@ -128,6 +127,6 @@ function create(name, errorType, customize) {
   return CustomError;
 }
 
-function format(lines) {
+function format (lines) {
   return EOL + lines.join(EOL) + EOL + EOL;
 }

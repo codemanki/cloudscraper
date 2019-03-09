@@ -1,11 +1,13 @@
+/* eslint-disable no-unused-expressions */
+/* eslint-env node, mocha */
 'use strict';
 
 var cloudscraper = require('../index');
 var request      = require('request-promise');
 var helper       = require('./helper');
 
-var sinon   = require('sinon');
-var expect  = require('chai').expect;
+var sinon  = require('sinon');
+var expect = require('chai').expect;
 
 describe('Cloudscraper', function () {
   var requestedPage = helper.getFixture('requested_page.html');
@@ -75,7 +77,7 @@ describe('Cloudscraper', function () {
     });
 
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
@@ -96,7 +98,7 @@ describe('Cloudscraper', function () {
     var secondResponse = helper.fakeResponse({ body: requestedPage });
 
     Request.onSecondCall()// Cloudflare is enabled for site. It returns a page with js challenge
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
@@ -123,7 +125,7 @@ describe('Cloudscraper', function () {
     });
 
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
@@ -144,7 +146,7 @@ describe('Cloudscraper', function () {
     var secondResponse = helper.fakeResponse({ body: requestedPage });
 
     Request.onSecondCall()
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
@@ -171,15 +173,15 @@ describe('Cloudscraper', function () {
     });
 
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({
       resolveWithFullResponse: true,
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
         'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
-        'jschl_answer': -5.33265406 + 'example-site.dev'.length, // -5.33265406 is a answer to cloudflares js challenge
-                                                                 // in this particular case
+        // -5.33265406 is a answer to cloudflares js challenge in this particular case
+        'jschl_answer': -5.33265406 + 'example-site.dev'.length,
         'pass': '1543827239.915-44n9IE20mS'
       },
       headers: {
@@ -195,7 +197,7 @@ describe('Cloudscraper', function () {
     });
 
     Request.onSecondCall()
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var thirdParams = helper.extendParams({
       resolveWithFullResponse: true,
@@ -216,7 +218,7 @@ describe('Cloudscraper', function () {
 
     // We submit a solution to the second challenge and CF returns requested page
     Request.onThirdCall()
-        .callsFake(helper.fakeRequest({ response: thirdResponse }));
+      .callsFake(helper.fakeRequest({ response: thirdResponse }));
 
     var options = { uri: uri, resolveWithFullResponse: true };
 
@@ -286,7 +288,7 @@ describe('Cloudscraper', function () {
     var expectedParams = helper.extendParams({ realEncoding: null });
 
     var expectedResponse = helper.fakeResponse({
-      body: new Buffer('R0lGODlhDwAPAKECAAAAzMzM/////wAAACwAAAAADwAPAAACIISPeQHsrZ5ModrLlN48CXF8m2iQ3YmmKqVlRtW4MLwWACH+H09wdGltaXplZCBieSBVbGVhZCBTbWFydFNhdmVyIQAAOw==', 'base64')
+      body: Buffer.from('R0lGODlhDwAPAKECAAAAzMzM/////wAAACwAAAAADwAPAAACIISPeQHsrZ5ModrLlN48CXF8m2iQ3YmmKqVlRtW4MLwWACH+H09wdGltaXplZCBieSBVbGVhZCBTbWFydFNhdmVyIQAAOw==', 'base64')
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -313,7 +315,7 @@ describe('Cloudscraper', function () {
     // Cloudflare is enabled for site.
     // It returns a redirecting page if a (session) cookie is unset.
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({ challengesToSolve: 2 });
     var secondResponse = helper.fakeResponse({ body: requestedPage });
@@ -327,7 +329,7 @@ describe('Cloudscraper', function () {
     var matchParams = sinon.match.has('jar', sinon.match.object).and(matchCookie);
 
     Request.withArgs(matchParams)
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     // We need to override cloudscraper's default jar for this test
     var options = { uri: uri, jar: helper.defaultParams.jar };
@@ -347,7 +349,6 @@ describe('Cloudscraper', function () {
   });
 
   it('should not use proxy\'s uri', function (done) {
-
     var firstParams = helper.extendParams({
       proxy: 'https://example-proxy-site.dev/path/'
     });
@@ -358,7 +359,7 @@ describe('Cloudscraper', function () {
     });
 
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({
       proxy: 'https://example-proxy-site.dev/path/',
@@ -366,7 +367,7 @@ describe('Cloudscraper', function () {
       qs: {
         'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
         'jschl_answer': -5.33265406 + 'example-site.dev'.length, // -5.33265406 is a answer to cloudflares js challenge
-                                                                 // in this particular case
+        // in this particular case
         'pass': '1543827239.915-44n9IE20mS'
       },
       headers: {
@@ -378,7 +379,7 @@ describe('Cloudscraper', function () {
     var secondResponse = helper.fakeResponse({ body: requestedPage });
 
     Request.onSecondCall()
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var options = { uri: uri, proxy: 'https://example-proxy-site.dev/path/' };
 
@@ -398,7 +399,7 @@ describe('Cloudscraper', function () {
     this.clock.tick(14000); // tick the timeout
   });
 
-  it('should reuse the provided cookie jar', function(done) {
+  it('should reuse the provided cookie jar', function (done) {
     var customJar = request.jar();
 
     var firstParams = helper.extendParams({ jar: customJar });
@@ -410,7 +411,7 @@ describe('Cloudscraper', function () {
     // Cloudflare is enabled for site.
     // It returns a redirecting page if a (session) cookie is unset.
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({
       jar: customJar,
@@ -428,7 +429,7 @@ describe('Cloudscraper', function () {
     var matchParams = sinon.match.has('jar', sinon.match.object).and(matchCookie);
 
     Request.withArgs(matchParams)
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     // We need to override cloudscraper's default jar for this test
     var options = { uri: uri, jar: customJar };
@@ -448,7 +449,7 @@ describe('Cloudscraper', function () {
       var customCookie = customJar.getCookieString('http://custom-site.dev/');
       expect(customCookie).to.equal('custom cookie');
 
-      cloudscraper.get(options, function(error, response, body) {
+      cloudscraper.get(options, function (error, response, body) {
         expect(error).to.be.null;
 
         expect(Request.thirdCall.args[0].jar).to.equal(customJar);

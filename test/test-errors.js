@@ -1,15 +1,17 @@
+/* eslint-disable no-unused-expressions */
+/* eslint-env node, mocha */
 'use strict';
 
 var cloudscraper = require('../index');
 var request      = require('request-promise');
-var errors = require('../errors');
+var errors       = require('../errors');
 var helper       = require('./helper');
 
-var sinon   = require('sinon');
-var expect  = require('chai').expect;
+var sinon  = require('sinon');
+var expect = require('chai').expect;
 var assert = require('chai').assert;
 
-describe('Cloudscraper', function() {
+describe('Cloudscraper', function () {
   var uri = helper.defaultParams.uri;
   var sandbox;
   var Request;
@@ -27,7 +29,7 @@ describe('Cloudscraper', function() {
     this.clock.restore();
   });
 
-  it('should return error if it was thrown by request', function(done) {
+  it('should return error if it was thrown by request', function (done) {
     var fakeError = new Error('fake');
 
     Request.callsFake(helper.fakeRequest({ error: fakeError }));
@@ -43,7 +45,7 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
-  it('should return error if captcha is served by cloudflare', function(done) {
+  it('should return error if captcha is served by cloudflare', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
       body: helper.getFixture('captcha.html')
@@ -66,7 +68,7 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
   });
 
-  it('should return error if cloudflare returned some inner error', function(done) {
+  it('should return error if cloudflare returned some inner error', function (done) {
     // https://support.cloudflare.com/hc/en-us/sections/200820298-Error-Pages
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
@@ -94,7 +96,7 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
-  it('should add a description to 5xx range cloudflare errors', function(done) {
+  it('should add a description to 5xx range cloudflare errors', function (done) {
     // https://support.cloudflare.com/hc/en-us/sections/200820298-Error-Pages
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
@@ -122,7 +124,7 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
-  it('should not error if error description is unavailable', function(done) {
+  it('should not error if error description is unavailable', function (done) {
     // https://support.cloudflare.com/hc/en-us/sections/200820298-Error-Pages
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
@@ -150,8 +152,7 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
-
-  it('should return error if cf presented more than 3 challenges in a row', function(done) {
+  it('should return error if cf presented more than 3 challenges in a row', function (done) {
     // The expected params for all subsequent calls to Request
     var expectedParams = helper.extendParams({
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl'
@@ -196,7 +197,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(200000);
   });
 
-  it('should return error if body is undefined', function(done) {
+  it('should return error if body is undefined', function (done) {
     Request.callsFake(helper.fakeRequest({
       response: { statusCode: 500 }
     }));
@@ -214,7 +215,7 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
-  it('should return error if challenge page failed to be parsed', function(done) {
+  it('should return error if challenge page failed to be parsed', function (done) {
     var expectedResponse = helper.fakeResponse({
       body: helper.getFixture('invalid_js_challenge.html')
     });
@@ -237,7 +238,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it('should return error if js challenge has error during evaluation', function(done) {
+  it('should return error if js challenge has error during evaluation', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
@@ -265,7 +266,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it('should return error if pass extraction fails', function(done) {
+  it('should return error if pass extraction fails', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
@@ -291,7 +292,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it('should return error if challengeId extraction fails', function(done) {
+  it('should return error if challengeId extraction fails', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
@@ -317,8 +318,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-
-  it('should return error if it was thrown by request when solving challenge', function(done) {
+  it('should return error if it was thrown by request when solving challenge', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
       body: helper.getFixture('js_challenge_21_05_2015.html')
@@ -330,10 +330,10 @@ describe('Cloudscraper', function() {
 
     // Cloudflare is enabled for site. It returns a page with js challenge
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: expectedResponse }));
+      .callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     Request.onSecondCall()
-        .callsFake(helper.fakeRequest({ error: fakeError }));
+      .callsFake(helper.fakeRequest({ error: fakeError }));
 
     var promise = cloudscraper.get(uri, function (error) {
       // errorType 0, a connection error for example
@@ -351,7 +351,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000);
   });
 
-  it('should properly handle a case when after a challenge another one is returned', function(done) {
+  it('should properly handle a case when after a challenge another one is returned', function (done) {
     // Cloudflare is enabled for site. It returns a page with js challenge
     var firstResponse = helper.fakeResponse({
       statusCode: 503,
@@ -359,7 +359,7 @@ describe('Cloudscraper', function() {
     });
 
     Request.onFirstCall()
-        .callsFake(helper.fakeRequest({ response: firstResponse }));
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     // Second call to request.get returns recaptcha
     var secondParams = helper.extendParams({
@@ -378,7 +378,7 @@ describe('Cloudscraper', function() {
     });
 
     Request.onSecondCall()
-        .callsFake(helper.fakeRequest({ response: secondResponse }));
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cloudscraper.get(uri, function (error) {
       // errorType 1, means captcha is served
@@ -399,7 +399,7 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it('should return error if challenge page cookie extraction fails', function(done) {
+  it('should return error if challenge page cookie extraction fails', function (done) {
     // Cloudflare is enabled for site.
     // It returns a redirecting page if a (session) cookie is unset.
     var expectedResponse = helper.fakeResponse({
@@ -424,8 +424,8 @@ describe('Cloudscraper', function() {
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
-  it('should throw a TypeError if callback is not a function', function(done) {
-    var spy = sinon.spy(function() {
+  it('should throw a TypeError if callback is not a function', function (done) {
+    var spy = sinon.spy(function () {
       cloudscraper.get(uri);
     });
 
@@ -442,11 +442,11 @@ describe('Cloudscraper', function() {
     done();
   });
 
-  it('should throw a TypeError if challengesToSolve is not a number', function(done) {
-    var spy = sinon.spy(function() {
+  it('should throw a TypeError if challengesToSolve is not a number', function (done) {
+    var spy = sinon.spy(function () {
       var options = { uri: uri, challengesToSolve: 'abc' };
 
-      cloudscraper.get(options, function(){});
+      cloudscraper.get(options, function () {});
     });
 
     expect(spy).to.throw(TypeError, /`challengesToSolve` option .*number/);
@@ -461,7 +461,7 @@ describe('Cloudscraper', function() {
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
       body: {
-        toString: function(encoding) {
+        toString: function (encoding) {
           if (encoding === 'fake-encoding') {
             return helper.getFixture('captcha.html');
           }
@@ -492,10 +492,10 @@ describe('Cloudscraper', function() {
     this.clock.tick(7000); // tick the timeout
   });
 
-  it('should return error if cookie setting code evaluation fails', function(done) {
+  it('should return error if cookie setting code evaluation fails', function (done) {
     // Change the cookie setting code so the vm will throw an error
     var html = helper.getFixture('js_challenge_cookie.html');
-    var b64 = (new Buffer('throw new Error(\'vm eval failed\');')).toString('base64');
+    var b64 = Buffer.from('throw new Error(\'vm eval failed\');').toString('base64');
 
     var expectedResponse = helper.fakeResponse({
       statusCode: 503,
@@ -535,8 +535,7 @@ describe('Cloudscraper', function() {
 
     try {
       expect(spy).to.throw(errors.RequestError);
-    }
-    finally {
+    } finally {
       Object.defineProperty(Error, 'captureStackTrace', desc);
     }
   });
