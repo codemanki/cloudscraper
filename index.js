@@ -8,7 +8,7 @@ var VM_OPTIONS = {
 
 module.exports = defaults.call(requestModule);
 
-function defaults(params) {
+function defaults (params) {
   // isCloudScraper === !isRequestModule
   var isRequestModule = this === requestModule;
 
@@ -33,9 +33,9 @@ function defaults(params) {
   defaultParams = Object.assign({}, defaultParams, params);
 
   var cloudscraper = requestModule.defaults
-      .call(this, defaultParams, function(options) {
-        return performRequest(options, true);
-      });
+    .call(this, defaultParams, function (options) {
+      return performRequest(options, true);
+    });
 
   // There's no safety net here, any changes apply to all future requests
   // that are made with this instance and derived instances.
@@ -48,14 +48,14 @@ function defaults(params) {
   }
   // Expose the debug option
   Object.defineProperty(cloudscraper, 'debug',
-      Object.getOwnPropertyDescriptor(this, 'debug'));
+    Object.getOwnPropertyDescriptor(this, 'debug'));
 
   return cloudscraper;
 }
 
 // This function is wrapped to ensure that we get new options on first call.
 // The options object is reused in subsequent calls when calling it directly.
-function performRequest(options, isFirstRequest) {
+function performRequest (options, isFirstRequest) {
   // Prevent overwriting realEncoding in subsequent calls
   if (!('realEncoding' in options)) {
     // Can't just do the normal options.encoding || 'utf8'
@@ -70,24 +70,24 @@ function performRequest(options, isFirstRequest) {
   options.encoding = null;
 
   if (isNaN(options.challengesToSolve)) {
-    throw new TypeError('Expected `challengesToSolve` option to be a number, '
-      + 'got ' + typeof(options.challengesToSolve) + ' instead.');
+    throw new TypeError('Expected `challengesToSolve` option to be a number, ' +
+      'got ' + typeof (options.challengesToSolve) + ' instead.');
   }
 
   // This should be the default export of either request or request-promise.
   var requester = options.requester;
 
   if (typeof requester !== 'function') {
-    throw new TypeError('Expected `requester` option to be a function, got '
-        + typeof(requester) + ' instead.');
+    throw new TypeError('Expected `requester` option to be a function, got ' +
+        typeof (requester) + ' instead.');
   }
 
   var request = requester(options);
 
   // If the requester is not request-promise, ensure we get a callback.
   if (typeof request.callback !== 'function') {
-    throw new TypeError('Expected a callback function, got '
-        + typeof(request.callback) + ' instead.');
+    throw new TypeError('Expected a callback function, got ' +
+        typeof (request.callback) + ' instead.');
   }
 
   // We only need the callback from the first request.
@@ -100,10 +100,10 @@ function performRequest(options, isFirstRequest) {
 
   // The error event only provides an error argument.
   request.removeAllListeners('error')
-      .once('error', processRequestResponse.bind(null, options));
+    .once('error', processRequestResponse.bind(null, options));
   // The complete event only provides response and body arguments.
   request.removeAllListeners('complete')
-      .once('complete', processRequestResponse.bind(null, options, null));
+    .once('complete', processRequestResponse.bind(null, options, null));
 
   // Indicate that this is a cloudscraper request, required by test/helper.
   request.cloudscraper = true;
@@ -112,7 +112,7 @@ function performRequest(options, isFirstRequest) {
 
 // The argument convention is options first where possible, options
 // always before response, and body always after response.
-function processRequestResponse(options, error, response, body) {
+function processRequestResponse (options, error, response, body) {
   var callback = options.callback;
 
   var stringBody;
@@ -121,9 +121,7 @@ function processRequestResponse(options, error, response, body) {
 
   if (error || !body || !body.toString) {
     // Pure request error (bad connection, wrong url, etc)
-    error = new errors.RequestError(error, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.RequestError(error, options, response));
   }
 
   stringBody = body.toString('utf8');
@@ -131,7 +129,7 @@ function processRequestResponse(options, error, response, body) {
   try {
     validate(options, response, stringBody);
   } catch (error) {
-    return callback(error, response, body);
+    return callback(error);
   }
 
   isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
@@ -143,12 +141,12 @@ function processRequestResponse(options, error, response, body) {
     error = new errors.CloudflareError(cause, options, response);
     error.errorType = 4;
 
-    return callback(error, response, body);
+    return callback(error);
   }
 
   // If body contains specified string, solve challenge
   if (isChallengePresent) {
-    setTimeout(function() {
+    setTimeout(function () {
       solveChallenge(options, response, stringBody);
     }, options.cloudflareTimeout);
   } else if (isRedirectChallengePresent) {
@@ -159,7 +157,7 @@ function processRequestResponse(options, error, response, body) {
   }
 }
 
-function validate(options, response, body) {
+function validate (options, response, body) {
   var match;
 
   // Finding captcha
@@ -178,7 +176,7 @@ function validate(options, response, body) {
   return false;
 }
 
-function solveChallenge(options, response, body) {
+function solveChallenge (options, response, body) {
   var callback = options.callback;
 
   var uri = response.request.uri;
@@ -191,16 +189,13 @@ function solveChallenge(options, response, body) {
   var payload = {};
 
   var match;
-  var error;
   var cause;
 
   match = body.match(/name="jschl_vc" value="(\w+)"/);
 
   if (!match) {
     cause = 'challengeId (jschl_vc) extraction failed';
-    error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   payload.jschl_vc = match[1];
@@ -209,33 +204,27 @@ function solveChallenge(options, response, body) {
 
   if (!match) {
     cause = 'setTimeout callback extraction failed';
-    error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   challenge = match[1]
-      .replace(/a\.value =(.+?) \+ .+?;/i, '$1')
-      .replace(/\s{3,}[a-z](?: = |\.).+/g, '')
-      .replace(/'; \d+'/g, '');
+    .replace(/a\.value =(.+?) \+ .+?;/i, '$1')
+    .replace(/\s{3,}[a-z](?: = |\.).+/g, '')
+    .replace(/'; \d+'/g, '');
 
   try {
     answer = vm.runInNewContext(challenge, undefined, VM_OPTIONS);
     payload.jschl_answer = answer + uri.hostname.length;
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
-    error = new errors.ParserError(error, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(error, options, response));
   }
 
   match = body.match(/name="pass" value="(.+?)"/);
 
   if (!match) {
     cause = 'Attribute (pass) value extraction failed';
-    error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   payload.pass = match[1];
@@ -253,23 +242,21 @@ function solveChallenge(options, response, body) {
   performRequest(options, false);
 }
 
-function setCookieAndReload(options, response, body) {
+function setCookieAndReload (options, response, body) {
   var callback = options.callback;
 
   var challenge = body.match(/S='([^']+)'/);
   if (!challenge) {
     var cause = 'Cookie code extraction failed';
-    var error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   var base64EncodedCode = challenge[1];
-  var cookieSettingCode = new Buffer(base64EncodedCode, 'base64').toString('ascii');
+  var cookieSettingCode = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
 
   var sandbox = {
     location: {
-      reload: function() {}
+      reload: function () {}
     },
     document: {}
   };
@@ -277,12 +264,10 @@ function setCookieAndReload(options, response, body) {
   try {
     vm.runInNewContext(cookieSettingCode, sandbox, VM_OPTIONS);
 
-    options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
+    options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, { ignoreError: true });
   } catch (error) {
     error.message = 'Cookie code evaluation failed: ' + error.message;
-    error = new errors.ParserError(error, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(error, options, response));
   }
 
   options.challengesToSolve = options.challengesToSolve - 1;
@@ -290,11 +275,10 @@ function setCookieAndReload(options, response, body) {
   performRequest(options, false);
 }
 
-function processResponseBody(options, response, body) {
+function processResponseBody (options, response, body) {
   var callback = options.callback;
-  var error = null;
 
-  if(typeof options.realEncoding === 'string') {
+  if (typeof options.realEncoding === 'string') {
     body = body.toString(options.realEncoding);
     // The resolveWithFullResponse option will resolve with the response
     // object. This changes the response.body so it is as expected.
@@ -304,10 +288,10 @@ function processResponseBody(options, response, body) {
     // potential errors there, otherwise return the response as is.
     try {
       validate(options, response, body);
-    } catch (e) {
-      error = e;
+    } catch (error) {
+      return callback(error);
     }
   }
 
-  callback(error, response, body);
+  callback(null, response, body);
 }

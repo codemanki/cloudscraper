@@ -10,7 +10,7 @@ var request = require('request');
 // Replacing start with a noop prevents real requests from being made.
 // Request -> Request.prototype.init -> Request.prototype.start
 // The test/helper is responsible for calling back with a fake response.
-request.Request.prototype.start = function(){};
+request.Request.prototype.start = function () {};
 
 configure({
   request: request,

@@ -1,10 +1,12 @@
+/* eslint-disable promise/always-return,promise/catch-or-return,promise/no-callback-in-promise */
+/* eslint-env node, mocha */
 'use strict';
 
 var cloudscraper = require('../index');
-var request = require('request-promise');
-var helper = require('./helper');
+var request      = require('request-promise');
+var helper       = require('./helper');
 
-var sinon = require('sinon');
+var sinon  = require('sinon');
 var expect = require('chai').expect;
 
 describe('Cloudscraper promise', function () {

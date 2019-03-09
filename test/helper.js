@@ -10,9 +10,9 @@ var defaultParams = {
   jar: request.jar(),
   uri: 'http://example-site.dev/path/',
   headers: {
-    "User-Agent": "Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36",
-    "Cache-Control": "private",
-    "Accept": "application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5"
+    'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+    'Cache-Control': 'private',
+    'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
   },
   method: 'GET',
   encoding: null,
@@ -26,28 +26,28 @@ var defaultParams = {
 var cache = {};
 
 module.exports = {
-  getFixture: function(fileName) {
+  getFixture: function (fileName) {
     if (cache[fileName] === undefined) {
       cache[fileName] = fs.readFileSync(path.join(__dirname, 'fixtures', fileName), 'utf8');
     }
     return cache[fileName];
   },
   defaultParams: defaultParams,
-  fakeResponse: function(template) {
+  fakeResponse: function (template) {
     return Object.assign({
       statusCode: 200,
       headers: defaultParams.headers,
       body: ''
     }, template);
   },
-  extendParams: function(params) {
+  extendParams: function (params) {
     // Extend target with the default params and provided params
     var target = Object.assign({}, defaultParams, params);
     // Extend target.headers with defaults headers and provided headers
     target.headers = Object.assign({}, defaultParams.headers, params.headers);
     return target;
   },
-  fakeRequest: function(template) {
+  fakeRequest: function (template) {
     // In this context, fake is the request result
     var fake = Object.assign({
       error: null,
@@ -79,12 +79,12 @@ module.exports = {
       }
     });
 
-    return function Request(params) {
+    return function Request (params) {
       var instance = request(params);
 
       // This is a hack to prevent sending events to early. See #104
       Object.defineProperty(instance, 'cloudscraper', {
-        set: function() {
+        set: function () {
           // Add the required convenience property to fake the response.
           fake.response.request = this;
 
@@ -94,7 +94,7 @@ module.exports = {
             this.emit('complete', fake.response, fake.body);
           }
         },
-        get: function() {
+        get: function () {
           return true;
         }
       });

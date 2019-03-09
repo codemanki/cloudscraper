@@ -1,5 +1,18 @@
 {
-  'rules': {
-    'semi': 'error'
+  "extends": [
+    "standard",
+    "plugin:promise/recommended"
+  ],
+  "plugins": [
+    "node",
+    "json"
+  ],
+  "rules": {
+    "semi": [2, "always"],
+    "no-multi-spaces": [1, {
+      "exceptions": {
+        "VariableDeclarator": true
+      }
+    }]
   }
 }
