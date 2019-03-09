@@ -45,9 +45,32 @@ describe('Cloudscraper', function () {
     expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
+  it('should return error if cloudflare response is empty', function (done) {
+    var expectedResponse = helper.cloudflareResponse({
+      statusCode: 504,
+      body: Buffer.from('')
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var promise = cloudscraper.get(uri, function (error) {
+      // errorType 1, means captcha is served
+      expect(error).to.be.instanceOf(errors.CloudflareError);
+      expect(error).to.have.property('error', 504);
+      expect(error).to.have.property('errorType', 2);
+      expect(error.message).to.be.equal('504, Gateway Timeout');
+
+      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
+    });
+
+    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
+  });
+
   it('should return error if captcha is served by cloudflare', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('captcha.html')
     });
 
@@ -73,7 +96,7 @@ describe('Cloudscraper', function () {
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
 
-    var expectedResponse = helper.fakeResponse({
+    var expectedResponse = helper.cloudflareResponse({
       statusCode: 500,
       body: helper.getFixture('access_denied.html')
     });
@@ -101,7 +124,7 @@ describe('Cloudscraper', function () {
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
 
-    var expectedResponse = helper.fakeResponse({
+    var expectedResponse = helper.cloudflareResponse({
       statusCode: 500,
       body: helper.getFixture('access_denied.html').replace('1006', '504')
     });
@@ -129,7 +152,7 @@ describe('Cloudscraper', function () {
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
 
-    var expectedResponse = helper.fakeResponse({
+    var expectedResponse = helper.cloudflareResponse({
       statusCode: 500,
       body: helper.getFixture('access_denied.html').replace('1006', '5111')
     });
@@ -165,8 +188,7 @@ describe('Cloudscraper', function () {
     });
 
     // Cloudflare is enabled for site. It returns a page with js challenge
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_09_06_2016.html')
     });
 
@@ -199,7 +221,7 @@ describe('Cloudscraper', function () {
 
   it('should return error if body is undefined', function (done) {
     Request.callsFake(helper.fakeRequest({
-      response: { statusCode: 500 }
+      response: helper.cloudflareResponse({ body: undefined })
     }));
 
     var promise = cloudscraper.get(uri, function (error) {
@@ -207,16 +229,17 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('error', null);
       expect(error).to.have.property('errorType', 0);
 
-      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      assert.equal(error.response.statusCode, 503, 'status code');
 
       expect(error.response.body).to.be.equal(undefined);
+      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
     });
 
     expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
   it('should return error if challenge page failed to be parsed', function (done) {
-    var expectedResponse = helper.fakeResponse({
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('invalid_js_challenge.html')
     });
 
@@ -239,8 +262,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if js challenge has error during evaluation', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
     });
 
@@ -267,8 +289,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if pass extraction fails', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
     });
 
@@ -293,8 +314,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challengeId extraction fails', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
     });
 
@@ -319,8 +339,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if it was thrown by request when solving challenge', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_21_05_2015.html')
     });
 
@@ -353,8 +372,7 @@ describe('Cloudscraper', function () {
 
   it('should properly handle a case when after a challenge another one is returned', function (done) {
     // Cloudflare is enabled for site. It returns a page with js challenge
-    var firstResponse = helper.fakeResponse({
-      statusCode: 503,
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_09_06_2016.html')
     });
 
@@ -373,7 +391,7 @@ describe('Cloudscraper', function () {
       qs: sinon.match.object
     });
 
-    var secondResponse = helper.fakeResponse({
+    var secondResponse = helper.cloudflareResponse({
       body: helper.getFixture('captcha.html')
     });
 
@@ -402,8 +420,7 @@ describe('Cloudscraper', function () {
   it('should return error if challenge page cookie extraction fails', function (done) {
     // Cloudflare is enabled for site.
     // It returns a redirecting page if a (session) cookie is unset.
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       // The cookie extraction codes looks for the `S` variable assignment
       body: helper.getFixture('js_challenge_cookie.html').replace(/S=/gm, 'Z=')
     });
@@ -458,8 +475,7 @@ describe('Cloudscraper', function () {
       realEncoding: 'fake-encoding'
     });
 
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: {
         toString: function (encoding) {
           if (encoding === 'fake-encoding') {
@@ -497,8 +513,7 @@ describe('Cloudscraper', function () {
     var html = helper.getFixture('js_challenge_cookie.html');
     var b64 = Buffer.from('throw new Error(\'vm eval failed\');').toString('base64');
 
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 503,
+    var expectedResponse = helper.cloudflareResponse({
       body: html.replace(/S='([^']+)'/, 'S=\'' + b64 + '\'')
     });
 

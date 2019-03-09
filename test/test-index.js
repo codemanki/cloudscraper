@@ -71,8 +71,7 @@ describe('Cloudscraper', function () {
 
   it('should resolve challenge (version as on 21.05.2015) and then return page', function (done) {
     // Cloudflare is enabled for site. It returns a page with js challenge
-    var firstResponse = helper.fakeResponse({
-      statusCode: 503,
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_21_05_2015.html')
     });
 
@@ -119,8 +118,7 @@ describe('Cloudscraper', function () {
 
   it('should resolve challenge (version as on 09.06.2016) and then return page', function (done) {
     // Cloudflare is enabled for site. It returns a page with js challenge
-    var firstResponse = helper.fakeResponse({
-      statusCode: 503,
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_09_06_2016.html')
     });
 
@@ -167,8 +165,7 @@ describe('Cloudscraper', function () {
   it('should resolve 2 consequent challenges', function (done) {
     var firstParams = helper.extendParams({ resolveWithFullResponse: true });
     // First call and CF returns a challenge
-    var firstResponse = helper.fakeResponse({
-      statusCode: 503,
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
     });
 
@@ -191,8 +188,7 @@ describe('Cloudscraper', function () {
     });
 
     // We submit a solution to the first challenge, but CF decided to give us a second one
-    var secondResponse = helper.fakeResponse({
-      statusCode: 503,
+    var secondResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_03_12_2018_2.html')
     });
 
@@ -308,7 +304,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should set the given cookie and then return page', function (done) {
-    var firstResponse = helper.fakeResponse({
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_cookie.html')
     });
 
@@ -353,8 +349,7 @@ describe('Cloudscraper', function () {
       proxy: 'https://example-proxy-site.dev/path/'
     });
 
-    var firstResponse = helper.fakeResponse({
-      statusCode: 503,
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_03_12_2018_1.html')
     });
 
@@ -404,7 +399,7 @@ describe('Cloudscraper', function () {
 
     var firstParams = helper.extendParams({ jar: customJar });
 
-    var firstResponse = helper.fakeResponse({
+    var firstResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_cookie.html')
     });
 
