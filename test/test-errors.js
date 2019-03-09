@@ -51,7 +51,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       // errorType 1, means captcha is served
       expect(error).to.be.instanceOf(errors.CaptchaError);
       expect(error).to.have.property('error', 'captcha');
@@ -59,8 +59,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
@@ -78,7 +78,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       // errorType 2, means inner cloudflare error
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 1006);
@@ -87,8 +87,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
@@ -106,7 +106,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       // errorType 2, means inner cloudflare error
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 504);
@@ -115,8 +115,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
@@ -134,7 +134,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       // errorType 2, means inner cloudflare error
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 5111);
@@ -143,8 +143,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
@@ -171,7 +171,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 'Cloudflare challenge loop');
       expect(error).to.have.property('errorType', 4);
@@ -186,8 +186,8 @@ describe('Cloudscraper', function() {
         expect(Request.getCall(i)).to.be.calledWithExactly(expectedParams);
       }
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
@@ -198,17 +198,17 @@ describe('Cloudscraper', function() {
 
   it('should return error if body is undefined', function(done) {
     Request.callsFake(helper.fakeRequest({
-      response: {statusCode: 500}
+      response: { statusCode: 500 }
     }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.RequestError);
       expect(error).to.have.property('error', null);
       expect(error).to.have.property('errorType', 0);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(body).to.be.equal(undefined);
+      expect(error.response.body).to.be.equal(undefined);
     });
 
     expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
@@ -221,15 +221,15 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error').that.is.ok;
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
@@ -248,7 +248,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error').that.is.an('error');
       expect(error).to.have.property('errorType', 3);
@@ -256,8 +256,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
@@ -275,15 +275,15 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'Attribute (pass) value extraction failed');
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
@@ -301,15 +301,15 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'challengeId (jschl_vc) extraction failed');
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
@@ -380,7 +380,7 @@ describe('Cloudscraper', function() {
     Request.onSecondCall()
         .callsFake(helper.fakeRequest({ response: secondResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       // errorType 1, means captcha is served
       expect(error).to.be.instanceOf(errors.CaptchaError);
       expect(error).to.have.property('error', 'captcha');
@@ -390,8 +390,8 @@ describe('Cloudscraper', function() {
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(secondResponse.body);
+      expect(error.response).to.be.equal(secondResponse);
+      expect(error.response.body).to.be.equal(secondResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
@@ -410,15 +410,15 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'Cookie code extraction failed');
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
@@ -475,7 +475,7 @@ describe('Cloudscraper', function() {
 
     var options = { uri: uri, encoding: 'fake-encoding' };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    var promise = cloudscraper.get(options, function (error) {
       // errorType 1, means captcha is served
       expect(error).to.be.instanceOf(errors.CaptchaError);
       expect(error).to.have.property('error', 'captcha');
@@ -483,8 +483,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(firstParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body.toString('fake-encoding'));
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
@@ -504,7 +504,7 @@ describe('Cloudscraper', function() {
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error').that.is.an('error');
       expect(error).to.have.property('errorType', 3);
@@ -512,8 +512,8 @@ describe('Cloudscraper', function() {
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
     });
 
     expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);

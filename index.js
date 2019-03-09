@@ -121,9 +121,7 @@ function processRequestResponse(options, error, response, body) {
 
   if (error || !body || !body.toString) {
     // Pure request error (bad connection, wrong url, etc)
-    error = new errors.RequestError(error, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.RequestError(error, options, response));
   }
 
   stringBody = body.toString('utf8');
@@ -131,7 +129,7 @@ function processRequestResponse(options, error, response, body) {
   try {
     validate(options, response, stringBody);
   } catch (error) {
-    return callback(error, response, body);
+    return callback(error);
   }
 
   isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
@@ -143,7 +141,7 @@ function processRequestResponse(options, error, response, body) {
     error = new errors.CloudflareError(cause, options, response);
     error.errorType = 4;
 
-    return callback(error, response, body);
+    return callback(error);
   }
 
   // If body contains specified string, solve challenge
@@ -198,9 +196,7 @@ function solveChallenge(options, response, body) {
 
   if (!match) {
     cause = 'challengeId (jschl_vc) extraction failed';
-    error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   payload.jschl_vc = match[1];
@@ -209,9 +205,7 @@ function solveChallenge(options, response, body) {
 
   if (!match) {
     cause = 'setTimeout callback extraction failed';
-    error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   challenge = match[1]
@@ -224,18 +218,14 @@ function solveChallenge(options, response, body) {
     payload.jschl_answer = answer + uri.hostname.length;
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
-    error = new errors.ParserError(error, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(error, options, response));
   }
 
   match = body.match(/name="pass" value="(.+?)"/);
 
   if (!match) {
     cause = 'Attribute (pass) value extraction failed';
-    error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   payload.pass = match[1];
@@ -259,9 +249,7 @@ function setCookieAndReload(options, response, body) {
   var challenge = body.match(/S='([^']+)'/);
   if (!challenge) {
     var cause = 'Cookie code extraction failed';
-    var error = new errors.ParserError(cause, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   var base64EncodedCode = challenge[1];
@@ -280,9 +268,7 @@ function setCookieAndReload(options, response, body) {
     options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, {ignoreError: true});
   } catch (error) {
     error.message = 'Cookie code evaluation failed: ' + error.message;
-    error = new errors.ParserError(error, options, response);
-
-    return callback(error, response, body);
+    return callback(new errors.ParserError(error, options, response));
   }
 
   options.challengesToSolve = options.challengesToSolve - 1;
@@ -292,7 +278,6 @@ function setCookieAndReload(options, response, body) {
 
 function processResponseBody(options, response, body) {
   var callback = options.callback;
-  var error = null;
 
   if(typeof options.realEncoding === 'string') {
     body = body.toString(options.realEncoding);
@@ -304,10 +289,10 @@ function processResponseBody(options, response, body) {
     // potential errors there, otherwise return the response as is.
     try {
       validate(options, response, body);
-    } catch (e) {
-      error = e;
+    } catch (error) {
+      return callback(error);
     }
   }
 
-  callback(error, response, body);
+  callback(null, response, body);
 }
