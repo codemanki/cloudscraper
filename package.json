@@ -3,6 +3,9 @@
   "version": "3.0.0",
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
+  "engines": {
+      "node": ">=6"
+  },
   "scripts": {
     "test": "npm run lint && nyc --reporter=html --reporter=text mocha",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
