@@ -6,6 +6,10 @@
   "engines": {
       "node": ">=6"
   },
+  "files": [
+    "index.js",
+    "errors.js"
+  ],
   "scripts": {
     "test": "npm run lint && nyc --reporter=html --reporter=text mocha",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
