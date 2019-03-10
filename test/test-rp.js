@@ -31,6 +31,7 @@ describe('Cloudscraper promise', function () {
 
   it('should resolve with response body', function () {
     var expectedResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = expectedResponse.body.toString('utf8');
     var expectedParams = helper.extendParams({ callback: undefined });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -39,7 +40,7 @@ describe('Cloudscraper promise', function () {
 
     return promise.then(function (body) {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-      expect(body).to.be.equal(requestedPage);
+      expect(body).to.be.equal(expectedBody);
     });
   });
 
@@ -48,6 +49,8 @@ describe('Cloudscraper promise', function () {
       statusCode: 200,
       body: requestedPage
     });
+
+    var expectedBody = expectedResponse.body.toString('utf8');
 
     var expectedParams = helper.extendParams({
       callback: undefined,
@@ -68,7 +71,7 @@ describe('Cloudscraper promise', function () {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
 
       expect(response).to.be.equal(expectedResponse);
-      expect(response.body).to.be.equal(requestedPage);
+      expect(response.body).to.be.equal(expectedBody);
     });
   });
 
@@ -76,9 +79,7 @@ describe('Cloudscraper promise', function () {
   // in the promise being rejected before we catch it in the test.
   // This can be noticeable if we return the promise instead of calling done.
   it('should define catch', function (done) {
-    var expectedResponse = helper.fakeResponse({ error: new Error('fake') });
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+    Request.callsFake(helper.fakeRequest({ error: new Error('fake') }));
 
     var caught = false;
     var promise = cloudscraper(uri);
@@ -91,10 +92,7 @@ describe('Cloudscraper promise', function () {
   });
 
   it('should define finally', function (done) {
-    var expectedResponse = helper.fakeResponse({ error: new Error('fake') });
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
-
+    Request.callsFake(helper.fakeRequest({ error: new Error('fake') }));
     var caught = false;
     var promise = cloudscraper(uri);
 

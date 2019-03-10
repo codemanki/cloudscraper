@@ -29,18 +29,52 @@ describe('Cloudscraper', function () {
     this.clock.restore();
   });
 
-  it('should return requested page, if cloudflare is disabled for page', function (done) {
+  it('should return requested page, in the specified encoding', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 200,
       body: requestedPage
     });
 
+    var expectedParams = helper.extendParams({
+      realEncoding: 'utf16le'
+    });
+
+    var expectedBody = expectedResponse.body.toString('utf16le');
+
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    var options = { uri: uri, encoding: 'utf16le' };
+
+    var promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
 
-      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(Request).to.be.calledOnceWithExactly(expectedParams);
+
+      expect(response).to.be.equal(expectedResponse);
+      expect(body).to.be.equal(expectedBody);
+    });
+
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+  });
+
+  it('should return json', function (done) {
+    var expectedResponse = helper.fakeResponse({
+      statusCode: 200,
+      body: { a: 'test' }
+    });
+
+    var expectedParams = helper.extendParams({
+      json: true
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var options = { uri: uri, json: true };
+
+    var promise = cloudscraper.get(options, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledOnceWithExactly(expectedParams);
 
       expect(response).to.be.equal(expectedResponse);
       expect(body).to.be.equal(expectedResponse.body);
@@ -49,11 +83,39 @@ describe('Cloudscraper', function () {
     expect(promise).to.eventually.equal(expectedResponse.body).and.notify(done);
   });
 
-  it('should not trigger any error if recaptcha is present in page not protected by CF', function (done) {
+  it('should return requested data, if cloudflare is disabled for page', function (done) {
+    var expectedResponse = helper.cloudflareResponse({
+      body: Buffer.from('abc', 'utf8')
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var expectedParams = helper.extendParams({
+      // Disable status code checking
+      simple: false
+    });
+
+    var options = { uri: uri, simple: false };
+
+    var promise = cloudscraper.get(options, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledOnceWithExactly(expectedParams);
+
+      expect(response).to.be.equal(expectedResponse);
+      expect(body).to.be.equal('abc');
+    });
+
+    expect(promise).to.eventually.equal('abc').and.notify(done);
+  });
+
+  it('should return requested page, if cloudflare is disabled for page', function (done) {
     var expectedResponse = helper.fakeResponse({
       statusCode: 200,
-      body: helper.getFixture('page_with_recaptcha.html')
+      body: requestedPage
     });
+
+    var expectedBody = expectedResponse.body.toString('utf8');
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
@@ -63,10 +125,32 @@ describe('Cloudscraper', function () {
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
       expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(expectedResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+  });
+
+  it('should not trigger any error if recaptcha is present in page not protected by CF', function (done) {
+    var expectedResponse = helper.fakeResponse({
+      statusCode: 200,
+      body: helper.getFixture('page_with_recaptcha.html')
+    });
+
+    var expectedBody = expectedResponse.body.toString('utf8');
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+
+      expect(response).to.be.equal(expectedResponse);
+      expect(body).to.be.equal(expectedBody);
+    });
+
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
   });
 
   it('should resolve challenge (version as on 21.05.2015) and then return page', function (done) {
@@ -95,6 +179,7 @@ describe('Cloudscraper', function () {
     // Second call to Request will have challenge solution
     // It should contain uri, answer, headers with Referer
     var secondResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = secondResponse.body.toString('utf8');
 
     Request.onSecondCall()// Cloudflare is enabled for site. It returns a page with js challenge
       .callsFake(helper.fakeRequest({ response: secondResponse }));
@@ -107,10 +192,10 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
       expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(secondResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(secondResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
 
     // tick the timeout
     this.clock.tick(7000);
@@ -142,6 +227,7 @@ describe('Cloudscraper', function () {
     // Second call to Request will have challenge solution
     // It should contain uri, answer, headers with Referer
     var secondResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = secondResponse.body.toString('utf8');
 
     Request.onSecondCall()
       .callsFake(helper.fakeRequest({ response: secondResponse }));
@@ -154,10 +240,10 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
       expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(secondResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(secondResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
 
     this.clock.tick(7000); // tick the timeout
   });
@@ -211,6 +297,7 @@ describe('Cloudscraper', function () {
     });
 
     var thirdResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = thirdResponse.body.toString('utf8');
 
     // We submit a solution to the second challenge and CF returns requested page
     Request.onThirdCall()
@@ -227,7 +314,7 @@ describe('Cloudscraper', function () {
       expect(Request.thirdCall).to.be.calledWithExactly(thirdParams);
 
       expect(response).to.be.equal(thirdResponse);
-      expect(body).to.be.equal(thirdResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
     expect(promise).to.eventually.equal(thirdResponse).and.notify(done);
@@ -244,6 +331,7 @@ describe('Cloudscraper', function () {
     });
     // Stub first call, which request makes to page. It should return requested page
     var expectedResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = expectedResponse.body.toString('utf8');
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
@@ -255,16 +343,17 @@ describe('Cloudscraper', function () {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
 
       expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(expectedResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
   });
 
   it('should make delete request', function (done) {
     var expectedParams = helper.extendParams({ method: 'DELETE' });
     // Stub first call, which request makes to page. It should return requested page
     var expectedResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = expectedResponse.body.toString('utf8');
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
@@ -274,10 +363,10 @@ describe('Cloudscraper', function () {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
 
       expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(expectedResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
   });
 
   it('should return raw data when encoding is null', function (done) {
@@ -315,6 +404,7 @@ describe('Cloudscraper', function () {
 
     var secondParams = helper.extendParams({ challengesToSolve: 2 });
     var secondResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = secondResponse.body.toString('utf-8');
 
     // Only callback with the second response if the cookie string matches
     var matchCookie = sinon.match(function (params) {
@@ -338,10 +428,10 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
       expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(secondResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(secondResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
   });
 
   it('should not use proxy\'s uri', function (done) {
@@ -372,6 +462,7 @@ describe('Cloudscraper', function () {
     });
 
     var secondResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = secondResponse.body.toString('utf8');
 
     Request.onSecondCall()
       .callsFake(helper.fakeRequest({ response: secondResponse }));
@@ -386,10 +477,10 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
       expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(secondResponse.body);
+      expect(body).to.be.equal(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(secondResponse.body).and.notify(done);
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
 
     this.clock.tick(14000); // tick the timeout
   });
