@@ -3,6 +3,13 @@
   "version": "3.0.0",
   "description": "Bypasses cloudflare's anti-ddos page",
   "main": "index.js",
+  "engines": {
+      "node": ">=6"
+  },
+  "files": [
+    "index.js",
+    "errors.js"
+  ],
   "scripts": {
     "test": "npm run lint && nyc --reporter=html --reporter=text mocha",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
@@ -19,7 +26,12 @@
     "cloudflare",
     "ddos",
     "scrape",
-    "webscraper"
+    "webscraper",
+    "anti-bot",
+    "waf",
+    "iuam",
+    "bypass",
+    "challenge"
   ],
   "author": "Oleksii Sribnyi",
   "license": "MIT",
