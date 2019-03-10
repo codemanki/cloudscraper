@@ -119,19 +119,36 @@ function processRequestResponse (options, error, response, body) {
   var isChallengePresent;
   var isRedirectChallengePresent;
 
+  // Encoding is null so body should be a buffer object
   if (error || !body || !body.toString) {
     // Pure request error (bad connection, wrong url, etc)
     return callback(new errors.RequestError(error, options, response));
   }
 
-  stringBody = body.toString('utf8');
+  response.isCloudflare = response.statusCode > 499 &&
+    /^cloudflare/i.test('' + response.caseless.get('server')) &&
+    /text\/html/i.test('' + response.caseless.get('content-type'));
 
-  try {
-    validate(options, response, stringBody);
-  } catch (error) {
-    return callback(error);
+  if (response.isCloudflare) {
+    if (body.length < 1) {
+      // This is a 5xx Cloudflare response with an empty body.
+      return callback(new errors.CloudflareError(response.statusCode, options, response));
+    }
+
+    stringBody = body.toString('utf8');
+
+    try {
+      validate(options, response, stringBody);
+    } catch (error) {
+      return callback(error);
+    }
   }
 
+  if (!response.isCloudflare || response.statusCode !== 503) {
+    return processResponseBody(options, response, body);
+  }
+
+  // This is a Cloudflare response with 503 status, check for challenges.
   isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
   isRedirectChallengePresent = stringBody.indexOf('You are being redirected') !== -1 || stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
   // isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
@@ -284,12 +301,14 @@ function processResponseBody (options, response, body) {
     // object. This changes the response.body so it is as expected.
     response.body = body;
 
-    // In case of real encoding, try to validate the response and find
-    // potential errors there, otherwise return the response as is.
-    try {
-      validate(options, response, body);
-    } catch (error) {
-      return callback(error);
+    if (response.isCloudflare) {
+      // In case of real encoding, try to validate the response and find
+      // potential errors there, otherwise return the response as is.
+      try {
+        validate(options, response, body);
+      } catch (error) {
+        return callback(error);
+      }
     }
   }
 

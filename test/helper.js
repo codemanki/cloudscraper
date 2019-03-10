@@ -1,7 +1,8 @@
-var request = require('./rp');
-var sinon   = require('sinon');
-var fs      = require('fs');
-var path    = require('path');
+var request  = require('./rp');
+var sinon    = require('sinon');
+var fs       = require('fs');
+var path     = require('path');
+var caseless = require('caseless');
 
 var defaultParams = {
   // Since cloudscraper wraps the callback, just ensure callback is a function
@@ -34,11 +35,29 @@ module.exports = {
   },
   defaultParams: defaultParams,
   fakeResponse: function (template) {
-    return Object.assign({
+    var response = Object.assign({
       statusCode: 200,
-      headers: defaultParams.headers,
       body: ''
     }, template);
+
+    response.headers = Object.assign({}, defaultParams.headers, template.headers);
+
+    response.caseless = caseless(response.headers);
+    return response;
+  },
+  cloudflareResponse: function (template) {
+    var response = Object.assign({
+      statusCode: 503,
+      body: ''
+    }, template);
+
+    response.headers = Object.assign({}, defaultParams.headers, {
+      'server': 'cloudflare',
+      'content-type': 'text/html; charset=UTF-8'
+    }, template.headers);
+
+    response.caseless = caseless(response.headers);
+    return response;
   },
   extendParams: function (params) {
     // Extend target with the default params and provided params
@@ -49,11 +68,14 @@ module.exports = {
   },
   fakeRequest: function (template) {
     // In this context, fake is the request result
-    var fake = Object.assign({
-      error: null,
-      // Set the default fake statusCode to 500 if an error is provided
-      response: { statusCode: template.error ? 500 : 200 }
-    }, template);
+    var fake = Object.assign({ error: null }, template);
+
+    if (!('response' in fake)) {
+      fake.response = this.fakeResponse({
+        // Set the default response statusCode to 500 if an error is provided
+        statusCode: template.error ? 500 : 200
+      });
+    }
 
     // Use the body from fake response if the template doesn't provide it
     if (!('body' in fake)) {
