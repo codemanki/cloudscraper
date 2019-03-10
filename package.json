@@ -26,7 +26,12 @@
     "cloudflare",
     "ddos",
     "scrape",
-    "webscraper"
+    "webscraper",
+    "anti-bot",
+    "waf",
+    "iuam",
+    "bypass",
+    "challenge"
   ],
   "author": "Oleksii Sribnyi",
   "license": "MIT",
