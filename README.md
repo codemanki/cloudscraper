@@ -1,7 +1,7 @@
 cloudscraper
 ============
 
-Node.js library to bypass cloudflare's anti-ddos page.
+Node.js library to bypass Cloudflare's anti-ddos page.
 
 [![js-semistandard-style](https://cdn.rawgit.com/flet/semistandard/master/badge.svg)](https://github.com/Flet/semistandard)
 
@@ -13,13 +13,13 @@ Node.js library to bypass cloudflare's anti-ddos page.
 This library is a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape) with couple enhancements and test cases ;)
 . All grats to its author \m/
 
-If the page you want to access is protected by CloudFlare, it will return special page, which expects client to support Javascript to solve challenge.
+If the page you want to access is protected by Cloudflare, it will return special page, which expects client to support Javascript to solve challenge.
 
 This small library encapsulates logic which extracts challenge, solves it, submits and returns the request page body.
 
-You can use cloudscraper even if you are not sure if CloudFlare protection is turned on.
+You can use cloudscraper even if you are not sure if Cloudflare protection is turned on.
 
-In general, CloudFlare has 4 types of _common_ anti-bot pages:
+In general, Cloudflare has 4 types of _common_ anti-bot pages:
   - Simple html+javascript page with challenge
   - Page which redirects to original site
   - Page with recaptcha
@@ -182,9 +182,9 @@ Cloudscraper error object inherits from `Error` has following fields:
   * `errorType` - Custom error code
 Where `errorType` can be following:
  - `0` if request to page failed due to some native reason as bad url, http connection or so. `error` in this case will be error [event](http://nodejs.org/api/http.html#http_class_http_server)
- - `1` cloudflare returned captcha. Nothing to do here. Bad luck
- - `2` cloudflare returned page with some inner error. `error` will be `Number` within this range `1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008`. See more [here](https://support.cloudflare.com/hc/en-us/sections/200038216-CloudFlare-Error-Messages)
- - `3` this error is returned when library failed to parse and solve js challenge. `error` will be `String` with some details. :warning: :warning: __Most likely it means that cloudflare have changed their js challenge.__
+ - `1` Cloudflare returned captcha. Nothing to do here. Bad luck
+ - `2` Cloudflare returned page with some inner error. `error` will be `Number` within this range `1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008`. See more [here](https://support.cloudflare.com/hc/en-us/sections/200820298-Error-Pages)
+ - `3` this error is returned when library failed to parse and solve js challenge. `error` will be `String` with some details. :warning: :warning: __Most likely it means that Cloudflare have changed their js challenge.__
  - `4` CF went into a loop and started to return challenge after challenge. If number of solved challenges is greater than `3` and another challenge is returned, throw an error
 
 Do not always rely on `error.cause` to be an error, it can be a string
@@ -198,7 +198,7 @@ Let me know, by opening [issue](https://github.com/codemanki/cloudscraper/issues
 
 WAT
 ===========
-Current cloudflare implementation requires browser to respect the timeout of 5 seconds and cloudscraper mimics this behaviour. So everytime you call `cloudscraper.get/post` you should expect it to return result after minimum 6 seconds. If you want to change this behaviour, you would need to make a generic request as described in above and pass `cloudflareTimeout` options with your value. But be aware that cloudflare might track this timeout and use it against you ;)
+Current Cloudflare implementation requires browser to respect the timeout of 5 seconds and cloudscraper mimics this behaviour. So everytime you call `cloudscraper.get/post` you should expect it to return result after minimum 6 seconds. If you want to change this behaviour, you would need to make a generic request as described in above and pass `cloudflareTimeout` options with your value. But be aware that Cloudflare might track this timeout and use it against you ;)
 
 ## TODO
  - [x] Check for recaptcha
