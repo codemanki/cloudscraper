@@ -554,4 +554,40 @@ describe('Cloudscraper', function () {
     expect(custom.defaults).to.equal(cloudscraper.defaults);
     done();
   });
+
+  it('should not error when using baseUrl option', function (done) {
+    var cf = cloudscraper.defaults({ baseUrl: 'http://example-site.dev/' });
+
+    var firstParams = helper.extendParams({
+      baseUrl: 'http://example-site.dev/',
+      uri: '/test'
+    });
+
+    var firstResponse = helper.cloudflareResponse({
+      body: helper.getFixture('js_challenge_03_12_2018_2.html')
+    });
+
+    Request.onFirstCall()
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
+
+    var secondResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = secondResponse.body.toString('utf8');
+
+    Request.onSecondCall()
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
+
+    var promise = cf.get('/test', function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+      expect(Request.secondCall.args[0]).to.not.have.property('baseUrl');
+
+      expect(response).to.be.equal(secondResponse);
+      expect(body).to.be.equal(expectedBody);
+    });
+
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+    this.clock.tick(7000);
+  });
 });
