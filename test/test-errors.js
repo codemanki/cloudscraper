@@ -47,8 +47,7 @@ describe('Cloudscraper', function () {
 
   it('should return error if cloudflare response is empty', function (done) {
     var expectedResponse = helper.cloudflareResponse({
-      statusCode: 504,
-      body: Buffer.from('')
+      statusCode: 504
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -124,9 +123,11 @@ describe('Cloudscraper', function () {
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
 
+    var html = helper.getFixture('access_denied.html').toString('utf8');
+
     var expectedResponse = helper.cloudflareResponse({
       statusCode: 500,
-      body: helper.getFixture('access_denied.html').replace('1006', '504')
+      body: Buffer.from(html.replace('1006', '504'), 'utf8')
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -152,9 +153,11 @@ describe('Cloudscraper', function () {
     // Error codes: 1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008
     // Error codes can also be the same as the HTTP status code in the 5xx range.
 
+    var html = helper.getFixture('access_denied.html').toString('utf8');
+
     var expectedResponse = helper.cloudflareResponse({
       statusCode: 500,
-      body: helper.getFixture('access_denied.html').replace('1006', '5111')
+      body: Buffer.from(html.replace('1006', '5111'), 'utf8')
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -262,12 +265,12 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if js challenge has error during evaluation', function (done) {
-    var expectedResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_1.html')
-    });
+    var html = helper.getFixture('js_challenge_03_12_2018_1.html').toString('utf8');
 
-    // Adds a syntax error near the end of line 37
-    expectedResponse.body = expectedResponse.body.replace(/\.toFixed/gm, '..toFixed');
+    var expectedResponse = helper.cloudflareResponse({
+      // Adds a syntax error near the end of line 37
+      body: Buffer.from(html.replace(/\.toFixed/gm, '..toFixed'), 'utf8')
+    });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
@@ -289,11 +292,11 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if pass extraction fails', function (done) {
-    var expectedResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_1.html')
-    });
+    var html = helper.getFixture('js_challenge_03_12_2018_1.html').toString('utf8');
 
-    expectedResponse.body = expectedResponse.body.replace(/name="pass"/gm, '');
+    var expectedResponse = helper.cloudflareResponse({
+      body: Buffer.from(html.replace(/name="pass"/gm, ''), 'utf8')
+    });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
@@ -314,11 +317,11 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challengeId extraction fails', function (done) {
-    var expectedResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_1.html')
-    });
+    var html = helper.getFixture('js_challenge_03_12_2018_1.html').toString('utf-8');
 
-    expectedResponse.body = expectedResponse.body.replace(/name="jschl_vc"/gm, '');
+    var expectedResponse = helper.cloudflareResponse({
+      body: Buffer.from(html.replace(/name="jschl_vc"/gm, ''), 'utf8')
+    });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
@@ -418,11 +421,11 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challenge page cookie extraction fails', function (done) {
-    // Cloudflare is enabled for site.
-    // It returns a redirecting page if a (session) cookie is unset.
+    var html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
+
     var expectedResponse = helper.cloudflareResponse({
       // The cookie extraction codes looks for the `S` variable assignment
-      body: helper.getFixture('js_challenge_cookie.html').replace(/S=/gm, 'Z=')
+      body: Buffer.from(html.replace(/S=/gm, 'Z='), 'utf-8')
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -475,16 +478,22 @@ describe('Cloudscraper', function () {
       realEncoding: 'fake-encoding'
     });
 
-    var expectedResponse = helper.cloudflareResponse({
-      body: {
-        toString: function (encoding) {
-          if (encoding === 'fake-encoding') {
-            return helper.getFixture('captcha.html');
-          }
-
-          return 'fake response body';
-        }
+    // Empty buffer but with non-zero length
+    var expectedBody = Buffer.alloc(1);
+    expectedBody.toString = function (encoding) {
+      if (encoding === 'fake-encoding') {
+        return helper.getFixture('captcha.html').toString('utf8');
       }
+
+      if (encoding === 'utf8') {
+        return '<p>fake response body without captcha</p>';
+      }
+
+      throw new Error('Unexpected encoding: ' + encoding);
+    };
+
+    var expectedResponse = helper.cloudflareResponse({
+      body: expectedBody
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
@@ -510,11 +519,11 @@ describe('Cloudscraper', function () {
 
   it('should return error if cookie setting code evaluation fails', function (done) {
     // Change the cookie setting code so the vm will throw an error
-    var html = helper.getFixture('js_challenge_cookie.html');
+    var html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
     var b64 = Buffer.from('throw new Error(\'vm eval failed\');').toString('base64');
 
     var expectedResponse = helper.cloudflareResponse({
-      body: html.replace(/S='([^']+)'/, 'S=\'' + b64 + '\'')
+      body: Buffer.from(html.replace(/S='([^']+)'/, 'S=\'' + b64 + '\''), 'utf-8')
     });
 
     Request.callsFake(helper.fakeRequest({ response: expectedResponse }));

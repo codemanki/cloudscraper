@@ -1,3 +1,5 @@
+'use strict';
+
 var vm = require('vm');
 var requestModule = require('request-promise');
 var errors = require('./errors');
@@ -128,6 +130,11 @@ function processRequestResponse (options, error, response, body) {
   response.isCloudflare = response.statusCode > 499 &&
     /^cloudflare/i.test('' + response.caseless.get('server')) &&
     /text\/html/i.test('' + response.caseless.get('content-type'));
+
+  // If body isn't a buffer, this is a custom response body.
+  if (!Buffer.isBuffer(body)) {
+    return callback(null, response, body);
+  }
 
   if (response.isCloudflare) {
     if (body.length < 1) {

@@ -29,7 +29,7 @@ var cache = {};
 module.exports = {
   getFixture: function (fileName) {
     if (cache[fileName] === undefined) {
-      cache[fileName] = fs.readFileSync(path.join(__dirname, 'fixtures', fileName), 'utf8');
+      cache[fileName] = fs.readFileSync(path.join(__dirname, 'fixtures', fileName));
     }
     return cache[fileName];
   },
@@ -37,7 +37,7 @@ module.exports = {
   fakeResponse: function (template) {
     var response = Object.assign({
       statusCode: 200,
-      body: ''
+      body: Buffer.alloc(0)
     }, template);
 
     response.headers = Object.assign({}, defaultParams.headers, template.headers);
@@ -48,7 +48,7 @@ module.exports = {
   cloudflareResponse: function (template) {
     var response = Object.assign({
       statusCode: 503,
-      body: ''
+      body: Buffer.alloc(0)
     }, template);
 
     response.headers = Object.assign({}, defaultParams.headers, {
@@ -81,25 +81,6 @@ module.exports = {
     if (!('body' in fake)) {
       fake.body = fake.response.body;
     }
-
-    // Freeze the fake result and it's properties for more reliable tests.
-    Object.freeze(fake);
-    Object.keys(fake).forEach(function (key) {
-      if (!Object.isFrozen(fake[key]) && !Buffer.isBuffer(fake[key])) {
-        // Mark all existing properties as non-configurable and non-writable.
-        var target = fake[key];
-        Object.keys(target).forEach(function (key) {
-          var desc = Object.getOwnPropertyDescriptor(target, key);
-          if (desc.configurable) {
-            desc.configurable = false;
-            if (desc.writable !== undefined) {
-              desc.writable = false;
-            }
-            Object.defineProperty(target, key, desc);
-          }
-        });
-      }
-    });
 
     return function Request (params) {
       var instance = request(params);
