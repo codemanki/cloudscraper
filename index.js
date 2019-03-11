@@ -255,9 +255,13 @@ function solveChallenge (options, response, body) {
 
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
-  // Use the original uri as the referer and to construct the answer url.
+  // Use the original uri as the referer and to construct the answer uri.
   options.headers['Referer'] = uri.href;
   options.uri = uri.protocol + '//' + uri.hostname + '/cdn-cgi/l/chk_jschl';
+  // baseUrl can't be used in conjunction with an absolute uri
+  if (options.baseUrl !== undefined) {
+    options.baseUrl = undefined;
+  }
   // Set the query string and decrement the number of challenges to solve.
   options.qs = payload;
   options.challengesToSolve = options.challengesToSolve - 1;
