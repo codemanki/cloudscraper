@@ -1,4 +1,8 @@
 ## Change Log
+### v3.0.1 (11/03/2019)
+- [#135](https://github.com/codemanki/cloudscraper/pull/135) Handle non-challenge response bodies 
+- [#127](https://github.com/codemanki/cloudscraper/pull/127) Improved cloudflare detection 
+- Various code style improvements
 
 ### v3.0.0 (07/03/2019)
 - **BREAKING CHANGE**: `get/post` methods together with their signatures are aligned with corresponding methods from [request](https://github.com/request/request#requestmethod)

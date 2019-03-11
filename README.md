@@ -213,10 +213,13 @@ Current cloudflare implementation requires browser to respect the timeout of 5 s
  - [x] Promisification
 
 ## Kudos to contributors
- - [Dwayne](https://github.com/pro-src) by himself rewrote the whole library, closed bunch of issues and feature requests. Thank him for 3.0.0 version ❤️
- - [roflmuffin](https://github.com/roflmuffin)
- - [Colecf](https://github.com/Colecf)
+ - [Dwayne](https://github.com/pro-src)
+ - [Cole Faust](https://github.com/Colecf)
  - [Jeongbong Seo](https://github.com/jngbng)
+ - [Mike van Rossum](https://github.com/askmike)
+ - [Santiago Castro](https://github.com/bryant1410)
+ - [Leonardo Gatica](https://github.com/lgaticaq)
+ - [Michael](https://github.com/roflmuffin)
  - [Kamikadze4GAME](https://github.com/Kamikadze4GAME)
 
 ## Dependencies
