@@ -590,4 +590,37 @@ describe('Cloudscraper', function () {
     expect(promise).to.eventually.equal(expectedBody).and.notify(done);
     this.clock.tick(7000);
   });
+
+  it('should use the provided cloudflare timeout', function (done) {
+    var firstParams = helper.extendParams({ cloudflareTimeout: 30 });
+
+    var firstResponse = helper.cloudflareResponse({
+      body: helper.getFixture('js_challenge_03_12_2018_1.html')
+    });
+
+    Request.onFirstCall()
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
+
+    var secondResponse = helper.fakeResponse({
+      body: requestedPage
+    });
+
+    var expectedBody = requestedPage.toString('utf8');
+
+    Request.onSecondCall()
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
+
+    // Disable sinon-timers for this test
+    this.clock.restore();
+    this.timeout(50);
+
+    var options = { uri: uri, cloudflareTimeout: 30 };
+
+    var promise = cloudscraper.get(options, function (error) {
+      expect(error).to.be.null;
+      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+    });
+
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+  });
 });

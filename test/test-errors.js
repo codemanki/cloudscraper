@@ -473,6 +473,17 @@ describe('Cloudscraper', function () {
     done();
   });
 
+  it('should throw a TypeError if cloudflareTimeout is not a number', function (done) {
+    var spy = sinon.spy(function () {
+      var options = { uri: uri, cloudflareTimeout: 'abc' };
+
+      cloudscraper.get(options, function () {});
+    });
+
+    expect(spy).to.throw(TypeError, /`cloudflareTimeout` option .*number/);
+    done();
+  });
+
   it('should detect captcha in response body\'s real encoding', function (done) {
     var firstParams = helper.extendParams({
       realEncoding: 'fake-encoding'
