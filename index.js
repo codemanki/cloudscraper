@@ -76,6 +76,11 @@ function performRequest (options, isFirstRequest) {
       'got ' + typeof (options.challengesToSolve) + ' instead.');
   }
 
+  if (isNaN(options.cloudflareTimeout)) {
+    throw new TypeError('Expected `cloudflareTimeout` option to be a number, ' +
+      'got ' + typeof (options.cloudflareTimeout) + ' instead.');
+  }
+
   // This should be the default export of either request or request-promise.
   var requester = options.requester;
 
