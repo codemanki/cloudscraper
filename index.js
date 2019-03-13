@@ -211,8 +211,6 @@ function solveChallenge (options, response, body) {
   var uri = response.request.uri;
   // The JS challenge to be evaluated for answer/response.
   var challenge;
-  // The result of challenge being evaluated in sandbox
-  var answer;
   // The query string to send back to Cloudflare
   // var payload = { jschl_vc, jschl_answer, pass };
   var payload = {};
@@ -229,7 +227,7 @@ function solveChallenge (options, response, body) {
 
   payload.jschl_vc = match[1];
 
-  match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value =.+?)\r?\n/i);
+  match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value\s*=.+?)\r?\n/);
 
   if (!match) {
     cause = 'setTimeout callback extraction failed';
@@ -237,16 +235,22 @@ function solveChallenge (options, response, body) {
   }
 
   challenge = match[1]
-    .replace(/a\.value =(.+?) \+ .+?;/i, '$1')
-    .replace(/\s{3,}[a-z](?: = |\.).+/g, '')
+    .replace(/a\.value\s*=\s*(.*)/, function (_, value) {
+      return value.replace(/[A-Za-z0-9_$]+\.length/, uri.hostname.length);
+    })
+    .replace(/^\s*[a-z0-9_$]+\s*[=.].+/gm, '')
     .replace(/'; \d+'/g, '');
 
   try {
-    answer = vm.runInNewContext(challenge, undefined, VM_OPTIONS);
-    payload.jschl_answer = answer + uri.hostname.length;
+    payload.jschl_answer = vm.runInNewContext(challenge, undefined, VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
     return callback(new errors.ParserError(error, options, response));
+  }
+
+  if (isNaN(payload.jschl_answer)) {
+    cause = 'Challenge answer is not a number';
+    return callback(new errors.ParserError(cause, options, response));
   }
 
   match = body.match(/name="pass" value="(.+?)"/);

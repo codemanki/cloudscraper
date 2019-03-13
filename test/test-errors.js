@@ -341,6 +341,31 @@ describe('Cloudscraper', function () {
     this.clock.tick(7000); // tick the timeout
   });
 
+  it('should return error if challenge answer is not a number', function (done) {
+    var html = helper.getFixture('js_challenge_03_12_2018_1.html').toString('utf-8');
+
+    var expectedResponse = helper.cloudflareResponse({
+      body: Buffer.from(html.replace(/a.value.*/, 'a.value="abc"'), 'utf8')
+    });
+
+    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+
+    var promise = cloudscraper.get(uri, function (error) {
+      expect(error).to.be.instanceOf(errors.ParserError);
+      expect(error).to.have.property('error', 'Challenge answer is not a number');
+      expect(error).to.have.property('errorType', 3);
+
+      expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+
+      expect(error.response).to.be.equal(expectedResponse);
+      expect(error.response.body).to.be.equal(expectedResponse.body);
+    });
+
+    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
   it('should return error if it was thrown by request when solving challenge', function (done) {
     var expectedResponse = helper.cloudflareResponse({
       body: helper.getFixture('js_challenge_21_05_2015.html')
