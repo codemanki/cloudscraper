@@ -248,6 +248,53 @@ describe('Cloudscraper', function () {
     this.clock.tick(7000); // tick the timeout
   });
 
+  it('should resolve challenge (version as on 13.03.2019) and then return page', function (done) {
+    // Cloudflare is enabled for site. It returns a page with js challenge
+    var firstResponse = helper.cloudflareResponse({
+      body: helper.getFixture('js_challenge_13_03_2019.html')
+    });
+
+    Request.onFirstCall()
+      .callsFake(helper.fakeRequest({ response: firstResponse }));
+
+    var secondParams = helper.extendParams({
+      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      qs: {
+        'jschl_vc': '18e0eb4e7cc844880cd9822df9d8546e',
+        // 6632 is a answer to cloudflares js challenge in this particular case
+        'jschl_answer': String(22.587957833300003 + 'example-site.dev'.length),
+        'pass': '1552499230.142-MOc6blXorq'
+      },
+      headers: {
+        'Referer': 'http://example-site.dev/path/'
+      },
+      challengesToSolve: 2
+    });
+
+    // Second call to Request will have challenge solution
+    // It should contain uri, answer, headers with Referer
+    var secondResponse = helper.fakeResponse({ body: requestedPage });
+    var expectedBody = secondResponse.body.toString('utf8');
+
+    Request.onSecondCall()
+      .callsFake(helper.fakeRequest({ response: secondResponse }));
+
+    var promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+
+      expect(response).to.be.equal(secondResponse);
+      expect(body).to.be.equal(expectedBody);
+    });
+
+    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+
+    this.clock.tick(7000); // tick the timeout
+  });
+
   it('should resolve 2 consequent challenges', function (done) {
     var firstParams = helper.extendParams({ resolveWithFullResponse: true });
     // First call and CF returns a challenge
