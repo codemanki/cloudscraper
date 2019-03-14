@@ -5,7 +5,8 @@
 
 ### v3.0.1 (11/03/2019)
 - [#135](https://github.com/codemanki/cloudscraper/pull/135) Handle non-challenge response bodies 
-- [#127](https://github.com/codemanki/cloudscraper/pull/127) Improved cloudflare detection 
+- [#127](https://github.com/codemanki/cloudscraper/pull/127) Improve cloudflare detection 
+- [#137](https://github.com/codemanki/cloudscraper/pull/137) Handle baseUrl option
 - Various code style improvements
 
 ### v3.0.0 (07/03/2019)
