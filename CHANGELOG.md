@@ -1,4 +1,8 @@
 ## Change Log
+
+### v3.1.0 (14/03/2019)
+- [#140](https://github.com/codemanki/cloudscraper/pull/140) Update code to parse new CF challenge
+
 ### v3.0.1 (11/03/2019)
 - [#135](https://github.com/codemanki/cloudscraper/pull/135) Handle non-challenge response bodies 
 - [#127](https://github.com/codemanki/cloudscraper/pull/127) Improved cloudflare detection 
