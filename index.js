@@ -266,7 +266,7 @@ function solveChallenge (options, response, body) {
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the answer uri.
   options.headers['Referer'] = uri.href;
-  options.uri = uri.protocol + '//' + uri.hostname + '/cdn-cgi/l/chk_jschl';
+  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
     options.baseUrl = undefined;
