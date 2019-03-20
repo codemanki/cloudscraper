@@ -212,11 +212,17 @@ function solveChallenge (options, response, body) {
   // The JS challenge to be evaluated for answer/response.
   var challenge;
   // The query string to send back to Cloudflare
-  // var payload = { jschl_vc, jschl_answer, pass };
+  // var payload = { s, jschl_vc, jschl_answer, pass };
   var payload = {};
 
   var match;
   var cause;
+  
+  match = body.match(/name="s" value="(.+?)"/);
+  
+  if (match) {
+    payload.s = match[1];
+  }
 
   match = body.match(/name="jschl_vc" value="(\w+)"/);
 
