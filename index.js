@@ -217,9 +217,9 @@ function solveChallenge (options, response, body) {
 
   var match;
   var cause;
-  
+
   match = body.match(/name="s" value="(.+?)"/);
-  
+
   if (match) {
     payload.s = match[1];
   }
