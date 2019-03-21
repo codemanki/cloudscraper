@@ -5,6 +5,8 @@ var requestModule = require('request-promise');
 var errors = require('./errors');
 
 var VM_OPTIONS = {
+  contextOrigin: 'cloudflare:challenge.js',
+  contextCodeGeneration: { strings: true, wasm: false },
   timeout: 5000
 };
 
@@ -132,7 +134,7 @@ function processRequestResponse (options, error, response, body) {
     return callback(new errors.RequestError(error, options, response));
   }
 
-  response.isCloudflare = response.statusCode > 499 &&
+  response.isCloudflare = response.statusCode > 399 &&
     /^cloudflare/i.test('' + response.caseless.get('server')) &&
     /text\/html/i.test('' + response.caseless.get('content-type'));
 
@@ -143,7 +145,7 @@ function processRequestResponse (options, error, response, body) {
 
   if (response.isCloudflare) {
     if (body.length < 1) {
-      // This is a 5xx Cloudflare response with an empty body.
+      // This is a 4xx-5xx Cloudflare response with an empty body.
       return callback(new errors.CloudflareError(response.statusCode, options, response));
     }
 
@@ -218,6 +220,8 @@ function solveChallenge (options, response, body) {
   var match;
   var cause;
 
+  var sandbox = createSandbox({ t: uri.hostname }, body);
+
   match = body.match(/name="s" value="(.+?)"/);
 
   if (match) {
@@ -244,11 +248,15 @@ function solveChallenge (options, response, body) {
     .replace(/a\.value\s*=\s*(.*)/, function (_, value) {
       return value.replace(/[A-Za-z0-9_$]+\.length/, uri.hostname.length);
     })
-    .replace(/^\s*[a-z0-9_$]+\s*[=.].+/gm, '')
+    .replace(/^\s*[a-z0-9_$]+\s*[=.](.+)/gmi, function (_, expr) {
+      // Retain the `k = "cf-dn-*" assignment
+      var match = expr.match(/([A-Za-z0-9_$]+)\s*=\s*['"]?cf-dn.+/);
+      return match !== null ? match[0] : '';
+    })
     .replace(/'; \d+'/g, '');
 
   try {
-    payload.jschl_answer = vm.runInNewContext(challenge, undefined, VM_OPTIONS);
+    payload.jschl_answer = vm.runInNewContext(challenge, sandbox, VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
     return callback(new errors.ParserError(error, options, response));
@@ -297,12 +305,7 @@ function setCookieAndReload (options, response, body) {
   var base64EncodedCode = challenge[1];
   var cookieSettingCode = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
 
-  var sandbox = {
-    location: {
-      reload: function () {}
-    },
-    document: {}
-  };
+  var sandbox = createSandbox();
 
   try {
     vm.runInNewContext(cookieSettingCode, sandbox, VM_OPTIONS);
@@ -339,4 +342,39 @@ function processResponseBody (options, response, body) {
   }
 
   callback(null, response, body);
+}
+
+function createSandbox (context, body) {
+  if (arguments.length > 1) {
+    var cache = Object.create(null);
+    var keys = [];
+
+    // Sandbox for standard IUAM JS challenge
+    return Object.assign({
+      atob: function (str) {
+        return Buffer.from(str, 'base64').toString('binary');
+      },
+      document: {
+        getElementById: function (id) {
+          if (keys.indexOf(id) === -1) {
+            var re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]+)');
+            var match = body.match(re);
+
+            keys.push(id);
+            cache[id] = match === null ? match : { innerHTML: match[1] };
+          }
+
+          return cache[id];
+        }
+      }
+    }, context);
+  }
+
+  // Sandbox used in setCookieAndReload
+  return Object.assign({
+    location: {
+      reload: function () {}
+    },
+    document: {}
+  }, context);
 }
