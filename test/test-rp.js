@@ -9,48 +9,55 @@ var helper       = require('./helper');
 var sinon  = require('sinon');
 var expect = require('chai').expect;
 
-describe('Cloudscraper promise', function () {
-  var requestedPage = helper.getFixture('requested_page.html');
-  var uri = helper.defaultParams.uri;
+describe('Cloudscraper', function () {
   var sandbox;
   var Request;
+  var uri;
+
+  var requestedPage = helper.getFixture('requested_page.html');
+
+  before(function (done) {
+    helper.listen(function () {
+      uri = helper.resolve('/test');
+
+      // Speed up tests
+      cloudscraper.defaultParams.cloudflareTimeout = 1;
+      done();
+    });
+  });
+
+  after(function () {
+    helper.server.close();
+  });
 
   beforeEach(function () {
-    helper.defaultParams.jar = request.jar();
+    // Prepare stubbed Request
     sandbox = sinon.createSandbox();
-    // Prepare stubbed Request for each test
-    Request = sandbox.stub(request, 'Request');
-    // setTimeout should be properly stubbed to prevent the unit test from running too long.
-    this.clock = sinon.useFakeTimers();
+    Request = sandbox.spy(request, 'Request');
   });
 
   afterEach(function () {
+    helper.reset();
     sandbox.restore();
-    this.clock.restore();
   });
 
   it('should resolve with response body', function () {
-    var expectedResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = expectedResponse.body.toString('utf8');
+    helper.router.get('/test', function (req, res) {
+      res.send(requestedPage);
+    });
+
     var expectedParams = helper.extendParams({ callback: undefined });
 
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
-
-    var promise = cloudscraper.get(uri);
-
-    return promise.then(function (body) {
+    return cloudscraper.get(uri).then(function (body) {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
   });
 
   it('should resolve with full response', function () {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 200,
-      body: requestedPage
+    helper.router.get('/test', function (req, res) {
+      res.send(requestedPage);
     });
-
-    var expectedBody = expectedResponse.body.toString('utf8');
 
     var expectedParams = helper.extendParams({
       callback: undefined,
@@ -60,18 +67,14 @@ describe('Cloudscraper promise', function () {
     // The method is implicitly GET
     delete expectedParams.method;
 
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
-
-    var promise = cloudscraper({
+    var options = {
       uri: uri,
       resolveWithFullResponse: true
-    });
+    };
 
-    return promise.then(function (response) {
+    return cloudscraper(options).then(function (response) {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(response.body).to.be.equal(expectedBody);
+      expect(response.body).to.be.equal(requestedPage);
     });
   });
 
@@ -79,27 +82,35 @@ describe('Cloudscraper promise', function () {
   // in the promise being rejected before we catch it in the test.
   // This can be noticeable if we return the promise instead of calling done.
   it('should define catch', function (done) {
-    Request.callsFake(helper.fakeRequest({ error: new Error('fake') }));
+    helper.router.get('/test', function (req, res) {
+      res.endAbruptly();
+    });
 
     var caught = false;
-    var promise = cloudscraper(uri);
 
-    promise.catch(function () {
-      caught = true;
-    }).then(function () {
-      if (caught) done();
-    });
+    cloudscraper(uri)
+      .catch(function () {
+        caught = true;
+      })
+      .then(function () {
+        if (caught) done();
+      });
   });
 
   it('should define finally', function (done) {
-    Request.callsFake(helper.fakeRequest({ error: new Error('fake') }));
-    var caught = false;
-    var promise = cloudscraper(uri);
-
-    promise.then(function () {
-      caught = true;
-    }).finally(function () {
-      if (!caught) done();
+    helper.router.get('/test', function (req, res) {
+      res.endAbruptly();
     });
+
+    var caught = false;
+
+    cloudscraper(uri)
+      .then(function () {
+        caught = true;
+      })
+      .finally(function () {
+        if (!caught) done();
+      })
+      .catch(function () {});
   });
 });

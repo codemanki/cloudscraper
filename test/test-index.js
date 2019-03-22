@@ -5,52 +5,56 @@
 var cloudscraper = require('../index');
 var request      = require('request-promise');
 var helper       = require('./helper');
+var querystring  = require('querystring');
 
-var sinon  = require('sinon');
-var expect = require('chai').expect;
+var sinon   = require('sinon');
+var expect  = require('chai').expect;
 
 describe('Cloudscraper', function () {
-  var requestedPage = helper.getFixture('requested_page.html');
-  var uri = helper.defaultParams.uri;
   var sandbox;
   var Request;
+  var uri;
+
+  var requestedPage = helper.getFixture('requested_page.html');
+
+  before(function (done) {
+    helper.listen(function () {
+      uri = helper.resolve('/test');
+
+      // Speed up tests
+      cloudscraper.defaultParams.cloudflareTimeout = 1;
+      done();
+    });
+  });
+
+  after(function () {
+    helper.server.close();
+  });
 
   beforeEach(function () {
-    helper.defaultParams.jar = request.jar();
+    // Prepare stubbed Request
     sandbox = sinon.createSandbox();
-    // Prepare stubbed Request for each test
-    Request = sandbox.stub(request, 'Request');
-    // setTimeout should be properly stubbed to prevent the unit test from running too long.
-    this.clock = sinon.useFakeTimers();
+    Request = sandbox.spy(request, 'Request');
   });
 
   afterEach(function () {
+    helper.reset();
     sandbox.restore();
-    this.clock.restore();
   });
 
   it('should return requested page, in the specified encoding', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 200,
-      body: requestedPage
+    var expectedBody = Buffer.from(requestedPage).toString('utf16le');
+
+    helper.router.get('/test', function (req, res) {
+      res.send(requestedPage);
     });
 
-    var expectedParams = helper.extendParams({
-      realEncoding: 'utf16le'
-    });
-
-    var expectedBody = expectedResponse.body.toString('utf16le');
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
-
+    var expectedParams = helper.extendParams({ realEncoding: 'utf16le' });
     var options = { uri: uri, encoding: 'utf16le' };
 
     var promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
       expect(body).to.be.equal(expectedBody);
     });
 
@@ -58,95 +62,66 @@ describe('Cloudscraper', function () {
   });
 
   it('should return json', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 200,
-      body: { a: 'test' }
+    var expectedBody = { a: 'test' };
+
+    helper.router.get('/test', function (req, res) {
+      res.send(expectedBody);
     });
 
-    var expectedParams = helper.extendParams({
-      json: true
-    });
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
-
+    var expectedParams = helper.extendParams({ json: true });
     var options = { uri: uri, json: true };
 
     var promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(body).to.be.eql(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(expectedResponse.body).and.notify(done);
+    expect(promise).to.eventually.eql(expectedBody).and.notify(done);
   });
 
   it('should return requested data, if cloudflare is disabled for page', function (done) {
-    var expectedResponse = helper.cloudflareResponse({
-      body: Buffer.from('abc', 'utf8')
+    helper.router.get('/test', function (req, res) {
+      res.status(500).send('xyz');
     });
 
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
-
-    var expectedParams = helper.extendParams({
-      // Disable status code checking
-      simple: false
-    });
-
+    // Disable status code checking
+    var expectedParams = helper.extendParams({ simple: false });
     var options = { uri: uri, simple: false };
 
     var promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal('abc');
+      expect(body).to.be.equal('xyz');
     });
 
-    expect(promise).to.eventually.equal('abc').and.notify(done);
+    expect(promise).to.eventually.equal('xyz').and.notify(done);
   });
 
   it('should return requested page, if cloudflare is disabled for page', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 200,
-      body: requestedPage
+    helper.router.get('/test', function (req, res) {
+      res.send(requestedPage);
     });
-
-    var expectedBody = expectedResponse.body.toString('utf8');
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should not trigger any error if recaptcha is present in page not protected by CF', function (done) {
-    var expectedResponse = helper.fakeResponse({
-      statusCode: 200,
-      body: helper.getFixture('page_with_recaptcha.html')
+    var expectedBody = helper.getFixture('page_with_recaptcha.html');
+
+    helper.router.get('/test', function (req, res) {
+      res.send(expectedBody);
     });
-
-    var expectedBody = expectedResponse.body.toString('utf8');
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
-
-      expect(response).to.be.equal(expectedResponse);
       expect(body).to.be.equal(expectedBody);
     });
 
@@ -154,201 +129,167 @@ describe('Cloudscraper', function () {
   });
 
   it('should resolve challenge (version as on 21.05.2015) and then return page', function (done) {
-    // Cloudflare is enabled for site. It returns a page with js challenge
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_21_05_2015.html')
-    });
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_21_05_2015.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
 
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
-
-    var secondParams = helper.extendParams({
-      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+    // Second call to Request will have challenge solution
+    var expectedParams = helper.extendParams({
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '89cdff5eaa25923e0f26e29e5195dce9',
-        // 633 is a answer to cloudflare's js challenge in this particular case
-        'jschl_answer': 633 + 'example-site.dev'.length,
+        // 633 is a answer to cloudflare's JS challenge in this particular case
+        'jschl_answer': 633 + helper.uri.hostname.length,
         'pass': '1432194174.495-8TSfc235EQ'
       },
       headers: {
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': uri
       },
       challengesToSolve: 2
     });
-
-    // Second call to Request will have challenge solution
-    // It should contain uri, answer, headers with Referer
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = secondResponse.body.toString('utf8');
-
-    Request.onSecondCall()// Cloudflare is enabled for site. It returns a page with js challenge
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
-      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
-
-    // tick the timeout
-    this.clock.tick(7000);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve challenge (version as on 09.06.2016) and then return page', function (done) {
-    // Cloudflare is enabled for site. It returns a page with js challenge
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_09_06_2016.html')
-    });
+    // Cloudflare is enabled for site. It returns a page with JS challenge
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_09_06_2016.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
 
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
-
-    var secondParams = helper.extendParams({
-      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+    // Second call to Request will have challenge solution
+    var expectedParams = helper.extendParams({
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '346b959db0cfa38f9938acc11d6e1e6e',
-        // 6632 is a answer to cloudflares js challenge in this particular case
-        'jschl_answer': 6632 + 'example-site.dev'.length,
+        // 6632 is a answer to Cloudflare's JS challenge in this particular case
+        'jschl_answer': 6632 + helper.uri.hostname.length,
         'pass': '1465488330.6-N/NbGTg+IM'
       },
       headers: {
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': uri
       },
       challengesToSolve: 2
     });
-
-    // Second call to Request will have challenge solution
-    // It should contain uri, answer, headers with Referer
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = secondResponse.body.toString('utf8');
-
-    Request.onSecondCall()
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
-      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
-
-    this.clock.tick(7000); // tick the timeout
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve challenge (version as on 13.03.2019) and then return page', function (done) {
-    // Cloudflare is enabled for site. It returns a page with js challenge
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_13_03_2019.html')
-    });
+    // Cloudflare is enabled for site. It returns a page with JS challenge
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_13_03_2019.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
 
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
-
-    var secondParams = helper.extendParams({
-      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+    // Second call to Request will have challenge solution
+    var expectedParams = helper.extendParams({
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '18e0eb4e7cc844880cd9822df9d8546e',
-        // 6632 is a answer to cloudflares js challenge in this particular case
-        'jschl_answer': String(22.587957833300003 + 'example-site.dev'.length),
+        // 6632 is a answer to Cloudflare's JS challenge in this particular case
+        'jschl_answer': (22.587957833300003 + helper.uri.hostname.length).toFixed(10),
         'pass': '1552499230.142-MOc6blXorq'
       },
       headers: {
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': uri
       },
       challengesToSolve: 2
     });
-
-    // Second call to Request will have challenge solution
-    // It should contain uri, answer, headers with Referer
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = secondResponse.body.toString('utf8');
-
-    Request.onSecondCall()
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
-      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
-
-    this.clock.tick(7000); // tick the timeout
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve 2 consequent challenges', function (done) {
-    var firstParams = helper.extendParams({ resolveWithFullResponse: true });
-    // First call and CF returns a challenge
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_1.html')
-    });
+    // Cloudflare is enabled for site. It returns a page with JS challenge
+    var additionalChallenge = true;
 
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_03_12_2018_1.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        if (additionalChallenge) {
+          additionalChallenge = false;
+          // We submit a solution to the first challenge, but CF decided to give us a second one
+          res.sendChallenge('js_challenge_03_12_2018_2.html');
+        } else {
+          res.send(requestedPage);
+        }
+      });
 
+    var firstParams  = helper.extendParams({ resolveWithFullResponse: true });
     var secondParams = helper.extendParams({
       resolveWithFullResponse: true,
-      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
-        // -5.33265406 is a answer to cloudflares js challenge in this particular case
-        'jschl_answer': -5.33265406 + 'example-site.dev'.length,
+        // -5.33265406 is a answer to Cloudflare's JS challenge in this particular case
+        'jschl_answer': -5.33265406 + helper.uri.hostname.length,
         'pass': '1543827239.915-44n9IE20mS'
       },
       headers: {
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': uri
       },
       challengesToSolve: 2
     });
 
-    // We submit a solution to the first challenge, but CF decided to give us a second one
-    var secondResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_2.html')
-    });
-
-    Request.onSecondCall()
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
-
     var thirdParams = helper.extendParams({
       resolveWithFullResponse: true,
-      uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': 'a41fee3a9f041fea01f0cbf3e8e4d29b',
-        // 1.9145049856 is a answer to cloudflares js challenge in this particular case
-        'jschl_answer': -1.9145049856 + 'example-site.dev'.length,
+        // 1.9145049856 is a answer to Cloudflare's JS challenge in this particular case
+        'jschl_answer': -1.9145049856 + helper.uri.hostname.length,
         'pass': '1543827246.024-hvxyNA3rOg'
       },
       headers: {
-        'Referer': 'http://example-site.dev/cdn-cgi/l/chk_jschl?jschl_vc=427c2b1cd4fba29608ee81b200e94bfa&jschl_answer=10.66734594&pass=1543827239.915-44n9IE20mS'
+        'Referer': helper.resolve('/cdn-cgi/l/chk_jschl?' +
+          querystring.stringify(secondParams.qs))
       },
       challengesToSolve: 1
     });
-
-    var thirdResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = thirdResponse.body.toString('utf8');
-
-    // We submit a solution to the second challenge and CF returns requested page
-    Request.onThirdCall()
-      .callsFake(helper.fakeRequest({ response: thirdResponse }));
 
     var options = { uri: uri, resolveWithFullResponse: true };
 
@@ -360,109 +301,81 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
       expect(Request.thirdCall).to.be.calledWithExactly(thirdParams);
 
-      expect(response).to.be.equal(thirdResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(thirdResponse).and.notify(done);
-
-    this.clock.tick(14000); // tick the timeout
+    expect(promise).to.eventually.haveOwnProperty('body', requestedPage).and.notify(done);
   });
 
   it('should make post request with formData', function (done) {
+    helper.router.post('/test', function (req, res) {
+      res.send(requestedPage);
+    });
+
     var formData = { some: 'data' };
 
     var expectedParams = helper.extendParams({
       method: 'POST',
       formData: formData
     });
-    // Stub first call, which request makes to page. It should return requested page
-    var expectedResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = expectedResponse.body.toString('utf8');
-
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
 
     var options = { uri: uri, formData: formData };
 
     var promise = cloudscraper.post(options, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should make delete request', function (done) {
-    var expectedParams = helper.extendParams({ method: 'DELETE' });
-    // Stub first call, which request makes to page. It should return requested page
-    var expectedResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = expectedResponse.body.toString('utf8');
+    helper.router.delete('/test', function (req, res) {
+      res.send(requestedPage);
+    });
 
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+    var expectedParams = helper.extendParams({ method: 'DELETE' });
 
     var promise = cloudscraper.delete(uri, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should return raw data when encoding is null', function (done) {
-    var expectedParams = helper.extendParams({ realEncoding: null });
-
-    var expectedResponse = helper.fakeResponse({
-      body: Buffer.from('R0lGODlhDwAPAKECAAAAzMzM/////wAAACwAAAAADwAPAAACIISPeQHsrZ5ModrLlN48CXF8m2iQ3YmmKqVlRtW4MLwWACH+H09wdGltaXplZCBieSBVbGVhZCBTbWFydFNhdmVyIQAAOw==', 'base64')
+    helper.router.get('/test', function (req, res) {
+      res.send(requestedPage);
     });
 
-    Request.callsFake(helper.fakeRequest({ response: expectedResponse }));
+    var expectedBody = Buffer.from(requestedPage, 'utf8');
+    var expectedParams = helper.extendParams({ realEncoding: null });
 
     var options = { uri: uri, encoding: null };
 
     var promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
-
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
-
-      expect(response).to.be.equal(expectedResponse);
-      expect(body).to.be.equal(expectedResponse.body);
+      expect(body).to.be.eql(expectedBody);
     });
 
-    expect(promise).to.eventually.equal(expectedResponse.body).and.notify(done);
+    expect(promise).to.eventually.eql(expectedBody).and.notify(done);
   });
 
   it('should set the given cookie and then return page', function (done) {
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_cookie.html')
+    helper.router.get('/test', function (req, res) {
+      if (req.headers.cookie === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a') {
+        res.send(requestedPage);
+      } else {
+        // It returns a redirecting page if a (session) cookie is unset.
+        res.sendChallenge('js_challenge_cookie.html');
+      }
     });
 
-    // Cloudflare is enabled for site.
-    // It returns a redirecting page if a (session) cookie is unset.
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
-
-    var secondParams = helper.extendParams({ challengesToSolve: 2 });
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = secondResponse.body.toString('utf-8');
-
-    // Only callback with the second response if the cookie string matches
-    var matchCookie = sinon.match(function (params) {
-      return params.jar.getCookieString(uri) === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a';
-    });
-
-    // Prevent a matching error if for some reason params.jar is missing or invalid.
-    var matchParams = sinon.match.has('jar', sinon.match.object).and(matchCookie);
-
-    Request.withArgs(matchParams)
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
+    var expectedParams = helper.extendParams({ challengesToSolve: 2 });
 
     // We need to override cloudscraper's default jar for this test
     var options = { uri: uri, jar: helper.defaultParams.jar };
@@ -472,49 +385,51 @@ describe('Cloudscraper', function () {
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
-      expect(Request.secondCall).to.be.calledWithExactly(secondParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should not use proxy\'s uri', function (done) {
-    var firstParams = helper.extendParams({
-      proxy: 'https://example-proxy-site.dev/path/'
-    });
+    helper.router
+      .get('/test', function (req, res) {
+        if (req.headers.host === 'example-site.dev') {
+          res.sendChallenge('js_challenge_03_12_2018_1.html');
+        }
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        if (req.headers.host === 'example-site.dev') {
+          res.send(requestedPage);
+        }
+      });
 
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_1.html')
+    var firstParams  = helper.extendParams({
+      proxy: helper.uri.href,
+      uri: 'http://example-site.dev/test'
     });
-
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
 
     var secondParams = helper.extendParams({
-      proxy: 'https://example-proxy-site.dev/path/',
+      proxy: helper.uri.href,
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
         'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
-        'jschl_answer': -5.33265406 + 'example-site.dev'.length, // -5.33265406 is a answer to cloudflares js challenge
-        // in this particular case
+        // -5.33265406 is a answer to Cloudflare's JS challenge in this particular case
+        'jschl_answer': -5.33265406 + 'example-site.dev'.length,
         'pass': '1543827239.915-44n9IE20mS'
       },
       headers: {
-        'Referer': 'http://example-site.dev/path/'
+        'Referer': 'http://example-site.dev/test'
       },
       challengesToSolve: 2
     });
 
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = secondResponse.body.toString('utf8');
-
-    Request.onSecondCall()
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
-
-    var options = { uri: uri, proxy: 'https://example-proxy-site.dev/path/' };
+    var options = {
+      proxy: helper.uri.href,
+      uri: 'http://example-site.dev/test'
+    };
 
     var promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
@@ -523,46 +438,29 @@ describe('Cloudscraper', function () {
       expect(Request.firstCall).to.be.calledWithExactly(firstParams);
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
-
-    this.clock.tick(14000); // tick the timeout
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should reuse the provided cookie jar', function (done) {
-    var customJar = request.jar();
-
-    var firstParams = helper.extendParams({ jar: customJar });
-
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_cookie.html')
+    helper.router.get('/test', function (req, res) {
+      if (req.headers.cookie === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a') {
+        res.send(requestedPage);
+      } else {
+        // It returns a redirecting page if a (session) cookie is unset.
+        res.sendChallenge('js_challenge_cookie.html');
+      }
     });
 
-    // Cloudflare is enabled for site.
-    // It returns a redirecting page if a (session) cookie is unset.
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
+    var customJar = request.jar();
 
+    var firstParams  = helper.extendParams({ jar: customJar });
     var secondParams = helper.extendParams({
       jar: customJar,
       challengesToSolve: 2
     });
-
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-
-    // Only callback with the second response if the cookie string matches
-    var matchCookie = sinon.match(function (params) {
-      return params.jar.getCookieString(uri) === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a';
-    });
-
-    // Prevent a matching error if for some reason params.jar is missing or invalid.
-    var matchParams = sinon.match.has('jar', sinon.match.object).and(matchCookie);
-
-    Request.withArgs(matchParams)
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     // We need to override cloudscraper's default jar for this test
     var options = { uri: uri, jar: customJar };
@@ -576,13 +474,12 @@ describe('Cloudscraper', function () {
       expect(Request.firstCall).to.be.calledWithExactly(firstParams);
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(secondResponse.body);
+      expect(body).to.be.equal(requestedPage);
 
       var customCookie = customJar.getCookieString('http://custom-site.dev/');
       expect(customCookie).to.equal('custom cookie');
 
-      cloudscraper.get(options, function (error, response, body) {
+      cloudscraper.get(options, function (error) {
         expect(error).to.be.null;
 
         expect(Request.thirdCall.args[0].jar).to.equal(customJar);
@@ -602,26 +499,21 @@ describe('Cloudscraper', function () {
     done();
   });
 
-  it('should not error when using baseUrl option', function (done) {
-    var cf = cloudscraper.defaults({ baseUrl: 'http://example-site.dev/' });
+  it('should not error when using the baseUrl option', function (done) {
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_13_03_2019.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
+
+    var cf = cloudscraper.defaults({ baseUrl: helper.uri.href });
 
     var firstParams = helper.extendParams({
-      baseUrl: 'http://example-site.dev/',
+      baseUrl: helper.uri.href,
       uri: '/test'
     });
-
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_2.html')
-    });
-
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
-
-    var secondResponse = helper.fakeResponse({ body: requestedPage });
-    var expectedBody = secondResponse.body.toString('utf8');
-
-    Request.onSecondCall()
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
 
     var promise = cf.get('/test', function (error, response, body) {
       expect(error).to.be.null;
@@ -630,44 +522,35 @@ describe('Cloudscraper', function () {
       expect(Request.firstCall).to.be.calledWithExactly(firstParams);
       expect(Request.secondCall.args[0]).to.not.have.property('baseUrl');
 
-      expect(response).to.be.equal(secondResponse);
-      expect(body).to.be.equal(expectedBody);
+      expect(body).to.be.equal(requestedPage);
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
-    this.clock.tick(7000);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should use the provided cloudflare timeout', function (done) {
-    var firstParams = helper.extendParams({ cloudflareTimeout: 30 });
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_03_12_2018_1.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
 
-    var firstResponse = helper.cloudflareResponse({
-      body: helper.getFixture('js_challenge_03_12_2018_1.html')
-    });
+    var expectedParams = helper.extendParams({ cloudflareTimeout: 50 });
 
-    Request.onFirstCall()
-      .callsFake(helper.fakeRequest({ response: firstResponse }));
-
-    var secondResponse = helper.fakeResponse({
-      body: requestedPage
-    });
-
-    var expectedBody = requestedPage.toString('utf8');
-
-    Request.onSecondCall()
-      .callsFake(helper.fakeRequest({ response: secondResponse }));
-
-    // Disable sinon-timers for this test
-    this.clock.restore();
-    this.timeout(50);
-
-    var options = { uri: uri, cloudflareTimeout: 30 };
+    var start = Date.now();
+    var options = { uri: uri, cloudflareTimeout: 50 };
 
     var promise = cloudscraper.get(options, function (error) {
       expect(error).to.be.null;
-      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+      expect(Request.firstCall).to.be.calledWithExactly(expectedParams);
+
+      var elapsed = Date.now() - start;
+      // Aiming to be within ~150ms of specified timeout
+      expect(elapsed >= 50 && elapsed <= 200).to.be.ok;
     });
 
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 });
