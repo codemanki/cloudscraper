@@ -42,6 +42,19 @@ describe('Cloudscraper', function () {
     sandbox.restore();
   });
 
+  // CI Scheduled Build
+  if (process.env.TRAVIS_EVENT_TYPE === 'cron' && process.env.CF_TEST_URL) {
+    it.only('should not error during scheduled builds', function () {
+      this.retries(4);
+      this.timeout(20000);
+
+      return cloudscraper.get({
+        uri: process.env.CF_TEST_URL,
+        cloudflareTimeout: 6000
+      });
+    });
+  }
+
   it('should return requested page, in the specified encoding', function (done) {
     var expectedBody = Buffer.from(requestedPage).toString('utf16le');
 
