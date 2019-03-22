@@ -10,3 +10,6 @@ node_js:
 sudo: false
 
 after_success: npm run coverage
+
+notifications:
+    webhooks: https://www.travisbuddy.com/?insertMode=update
