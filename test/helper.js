@@ -1,108 +1,100 @@
-var request  = require('./rp');
-var sinon    = require('sinon');
-var fs       = require('fs');
-var path     = require('path');
-var caseless = require('caseless');
+var request = require('request-promise');
+var sinon   = require('sinon');
+var fs      = require('fs');
+var url     = require('url');
+var path    = require('path');
+var express = require('express');
 
-var defaultParams = {
-  // Since cloudscraper wraps the callback, just ensure callback is a function
-  callback: sinon.match.func,
-  requester: sinon.match.func,
-  jar: request.jar(),
-  uri: 'http://example-site.dev/path/',
-  headers: {
-    'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
-    'Cache-Control': 'private',
-    'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
-  },
-  method: 'GET',
-  encoding: null,
-  realEncoding: 'utf8',
-  followAllRedirects: true,
-  cloudflareTimeout: 6000,
-  challengesToSolve: 3
-};
-
-// Cache fixtures so they're not read from the fs but once
+// Cache fixtures so they're only read from fs but once
 var cache = {};
 
-module.exports = {
+var helper = {
+  app: express(),
+  reset: function () {
+    helper.router = new express.Router();
+
+    helper.defaultParams = {
+      // Since cloudscraper wraps the callback, just ensure callback is a function
+      callback: sinon.match.func,
+      requester: sinon.match.func,
+      jar: request.jar(),
+      uri: helper.resolve('/test'),
+      headers: {
+        'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
+        'Cache-Control': 'private',
+        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+      },
+      method: 'GET',
+      encoding: null,
+      realEncoding: 'utf8',
+      followAllRedirects: true,
+      cloudflareTimeout: 1,
+      challengesToSolve: 3
+    };
+  },
   getFixture: function (fileName) {
-    if (cache[fileName] === undefined) {
-      cache[fileName] = fs.readFileSync(path.join(__dirname, 'fixtures', fileName));
+    var key = fileName;
+
+    if (cache[key] === undefined) {
+      fileName = path.join(__dirname, 'fixtures', fileName);
+      cache[key] = fs.readFileSync(fileName, 'utf8');
     }
-    return cache[fileName];
-  },
-  defaultParams: defaultParams,
-  fakeResponse: function (template) {
-    var response = Object.assign({
-      statusCode: 200,
-      body: Buffer.alloc(0)
-    }, template);
 
-    response.headers = Object.assign({}, defaultParams.headers, template.headers);
-
-    response.caseless = caseless(response.headers);
-    return response;
-  },
-  cloudflareResponse: function (template) {
-    var response = Object.assign({
-      statusCode: 503,
-      body: Buffer.alloc(0)
-    }, template);
-
-    response.headers = Object.assign({}, defaultParams.headers, {
-      'server': 'cloudflare',
-      'content-type': 'text/html; charset=UTF-8'
-    }, template.headers);
-
-    response.caseless = caseless(response.headers);
-    return response;
+    return cache[key];
   },
   extendParams: function (params) {
+    var defaultParams = this.defaultParams;
+
     // Extend target with the default params and provided params
-    var target = Object.assign({}, defaultParams, params);
+    var target = {};
+    Object.assign(target, defaultParams, params);
     // Extend target.headers with defaults headers and provided headers
-    target.headers = Object.assign({}, defaultParams.headers, params.headers);
+    target.headers = {};
+    Object.assign(target.headers, defaultParams.headers, params.headers);
+
     return target;
   },
-  fakeRequest: function (template) {
-    // In this context, fake is the request result
-    var fake = Object.assign({ error: null }, template);
+  resolve: function (uri) {
+    // eslint-disable-next-line node/no-deprecated-api
+    return url.resolve(helper.uri.href, uri);
+  },
+  listen: function (callback) {
+    helper.server = helper.app.listen(0, '127.0.0.1', function () {
+      var baseUrl = 'http://127.0.0.1:' + helper.server.address().port;
 
-    if (!('response' in fake)) {
-      fake.response = this.fakeResponse({
-        // Set the default response statusCode to 500 if an error is provided
-        statusCode: template.error ? 500 : 200
-      });
-    }
-
-    // Use the body from fake response if the template doesn't provide it
-    if (!('body' in fake)) {
-      fake.body = fake.response.body;
-    }
-
-    return function Request (params) {
-      var instance = request(params);
-
-      // This is a hack to prevent sending events to early. See #104
-      Object.defineProperty(instance, 'cloudscraper', {
-        set: function () {
-          // Add the required convenience property to fake the response.
-          fake.response.request = this;
-
-          if (fake.error !== null) {
-            this.emit('error', fake.error);
-          } else {
-            this.emit('complete', fake.response, fake.body);
-          }
-        },
-        get: function () {
-          return true;
-        }
-      });
-
-      return instance;
-    };
+      // eslint-disable-next-line node/no-deprecated-api
+      helper.uri = url.parse(baseUrl + '/');
+      helper.reset();
+      callback();
+    });
   }
 };
+
+helper.app.use(function (req, res, next) {
+  helper.router(req, res, next);
+});
+
+express.response.cloudflare = function () {
+  this.header('Server', 'cloudflare');
+  this.header('Content-Type', 'text/html; charset=UTF-8');
+  return this;
+};
+
+express.response.sendFixture = function (fileName) {
+  return this.send(helper.getFixture(fileName));
+};
+
+express.response.sendChallenge = function (fileName) {
+  return this.cloudflare().status(503).sendFixture(fileName);
+};
+
+express.response.endAbruptly = function () {
+  this.connection.write(
+    'HTTP/1.1 500\r\n' +
+    'Content-Type: text/plain\r\n' +
+    'Transfer-Encoding: chunked\r\n\r\n'
+  );
+  this.end();
+};
+
+module.exports = helper;
