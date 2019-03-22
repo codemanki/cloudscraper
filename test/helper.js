@@ -29,7 +29,8 @@ var helper = {
       realEncoding: 'utf8',
       followAllRedirects: true,
       cloudflareTimeout: 1,
-      challengesToSolve: 3
+      challengesToSolve: 3,
+      decodeEmails: false
     };
   },
   getFixture: function (fileName) {

@@ -499,6 +499,31 @@ describe('Cloudscraper', function () {
     done();
   });
 
+  it('should decode emails', function (done) {
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_13_03_2019.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.sendFixture('page_with_emails.html');
+      });
+
+    var cf = cloudscraper.defaults({ decodeEmails: true });
+
+    var firstParams = helper.extendParams({ decodeEmails: true });
+
+    var promise = cf.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(firstParams);
+
+      expect(body).to.include('cloudscraper@example-site.dev');
+    });
+
+    expect(promise).to.eventually.include('cloudscraper@example-site.dev').and.notify(done);
+  });
+
   it('should not error when using the baseUrl option', function (done) {
     helper.router
       .get('/test', function (req, res) {

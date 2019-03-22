@@ -3,6 +3,7 @@
 var vm = require('vm');
 var requestModule = require('request-promise');
 var errors = require('./errors');
+var decodeEmails = require('./lib/email-decode.js');
 
 var VM_OPTIONS = {
   contextOrigin: 'cloudflare:challenge.js',
@@ -30,7 +31,9 @@ function defaults (params) {
     // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
     followAllRedirects: true,
     // Support only this max challenges in row. If CF returns more, throw an error
-    challengesToSolve: 3
+    challengesToSolve: 3,
+    // Remove Cloudflare's email protection
+    decodeEmails: false
   };
 
   // Object.assign requires at least nodejs v4, request only test/supports v6+
@@ -338,6 +341,10 @@ function processResponseBody (options, response, body) {
       } catch (error) {
         return callback(error);
       }
+    }
+
+    if (options.decodeEmails) {
+      response.body = body = decodeEmails(body);
     }
   }
 
