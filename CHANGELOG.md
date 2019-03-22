@@ -1,6 +1,9 @@
 ## Change Log
 
-### v3.2.0 (14/03/2019)
+### v3.2.0 (22/03/2019)
+- [#153](https://github.com/codemanki/cloudscraper/pull/153) Update code to parse latest CF challenge
+
+### v3.2.0 (20/03/2019)
 - [#149](https://github.com/codemanki/cloudscraper/pull/149) Update code to parse latest CF challenge
 
 ### v3.1.0 (14/03/2019)
