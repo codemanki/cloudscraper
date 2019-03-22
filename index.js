@@ -3,6 +3,7 @@
 var vm = require('vm');
 var requestModule = require('request-promise');
 var errors = require('./errors');
+var decode = require('./lib/email-decode.js');
 
 var VM_OPTIONS = {
   contextOrigin: 'cloudflare:challenge.js',
@@ -27,7 +28,7 @@ function defaults (params) {
     },
     // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
     cloudflareTimeout: 6000,
-    // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
+    // Follow non-GET HTTP 3xx responses as redirects
     followAllRedirects: true,
     // Support only this max challenges in row. If CF returns more, throw an error
     challengesToSolve: 3
@@ -44,6 +45,8 @@ function defaults (params) {
   // There's no safety net here, any changes apply to all future requests
   // that are made with this instance and derived instances.
   cloudscraper.defaultParams = defaultParams;
+  // Removes Cloudflare's email protection, etc.
+  cloudscraper.decode = decode;
 
   // Ensure this instance gets a copy of our custom defaults function
   // and afterwards, it will be copied over automatically.
