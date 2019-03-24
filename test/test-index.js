@@ -241,6 +241,43 @@ describe('Cloudscraper', function () {
     expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
+  it('should resolve challenge (version as on 21.03.2019) and then return page', function (done) {
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_21_03_2019.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
+
+    // Second call to Request will have challenge solution
+    var expectedParams = helper.extendParams({
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
+      qs: {
+        's': '08ee9f79382c9f784ef868f239a0984261a28b2f-1553213547-1800-AXjMT2d0Sx0fifn2gHCBp7sjO3hmbH5Pab9lPE92HxBLetotfG2HQ0U8ioQ2CJwOMGV5pmmBmffUDmmyxIyCuRCBOxecZXzYCBZZReVFCTXgIlpXL8ZcztRhE9Bm3BNGfg==',
+        'jschl_vc': '56dea7618ea1879d5c357e2f36d8cc73',
+        'jschl_answer': String(4.0802397597999995 + helper.uri.hostname.length),
+        'pass': '1553213551.122-8cmVkvFy7Q'
+      },
+      headers: {
+        'Referer': uri
+      },
+      challengesToSolve: 2
+    });
+
+    var promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
+
+      expect(body).to.be.equal(requestedPage);
+    });
+
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
+  });
+
   it('should resolve 2 consequent challenges', function (done) {
     // Cloudflare is enabled for site. It returns a page with JS challenge
     var additionalChallenge = true;
@@ -574,6 +611,27 @@ describe('Cloudscraper', function () {
       var elapsed = Date.now() - start;
       // Aiming to be within ~150ms of specified timeout
       expect(elapsed >= 50 && elapsed <= 200).to.be.ok;
+    });
+
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
+  });
+
+  it('sandbox.document.getElementById should not error', function (done) {
+    var html = helper.getFixture('js_challenge_21_03_2019.html');
+    var statements = 'document.getElementById("missing");'.repeat(2);
+
+    helper.router
+      .get('/test', function (req, res) {
+        // Inserts new statements (getElementById) before 'a.value'
+        res.cloudflare().status(503).send(html.replace('a.value', statements + 'a.value'));
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
+
+    var promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+      expect(Request).to.be.calledTwice;
     });
 
     expect(promise).to.eventually.equal(requestedPage).and.notify(done);
