@@ -13,3 +13,4 @@ after_success: npm run coverage
 
 notifications:
     webhooks: https://www.travisbuddy.com/?insertMode=update
+    on_success: never
