@@ -128,6 +128,7 @@ function processRequestResponse (options, error, response, body) {
   var callback = options.callback;
 
   var stringBody;
+  var isChallenge;
   var isRedirectChallenge;
 
   // Encoding is null so body should be a buffer object
@@ -137,8 +138,7 @@ function processRequestResponse (options, error, response, body) {
   }
 
   response.responseStartTime = Date.now();
-  response.isCloudflare = response.statusCode > 399 &&
-    /^cloudflare/i.test('' + response.caseless.get('server')) &&
+  response.isCloudflare = /^cloudflare/i.test('' + response.caseless.get('server')) &&
     /text\/html/i.test('' + response.caseless.get('content-type'));
 
   // If body isn't a buffer, this is a custom response body.
@@ -146,42 +146,43 @@ function processRequestResponse (options, error, response, body) {
     return callback(null, response, body);
   }
 
-  if (response.isCloudflare) {
-    if (body.length < 1) {
-      // This is a 4xx-5xx Cloudflare response with an empty body.
-      return callback(new errors.CloudflareError(response.statusCode, options, response));
-    }
-
-    stringBody = body.toString('utf8');
-
-    try {
-      validate(options, response, stringBody);
-    } catch (error) {
-      return callback(error);
-    }
-  }
-
-  if (!response.isCloudflare || response.statusCode !== 503) {
+  if (!response.isCloudflare) {
     return processResponseBody(options, response, body);
   }
 
-  if (options.challengesToSolve === 0) {
-    var cause = 'Cloudflare challenge loop';
-    error = new errors.CloudflareError(cause, options, response);
-    error.errorType = 4;
+  if (body.length < 1) {
+    // This is a 4xx-5xx Cloudflare response with an empty body.
+    return callback(new errors.CloudflareError(response.statusCode, options, response));
+  }
 
+  stringBody = body.toString('utf8');
+
+  try {
+    validate(options, response, stringBody);
+  } catch (error) {
     return callback(error);
   }
 
-  // This is a Cloudflare response with 503 status, determine challenge type.
+  isChallenge = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
+
+  if (isChallenge) {
+    return solveChallenge(options, response, stringBody);
+  }
+
   isRedirectChallenge = stringBody.indexOf('You are being redirected') !== -1 ||
     stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
 
   if (isRedirectChallenge) {
-    return void setCookieAndReload(options, response, stringBody);
+    return setCookieAndReload(options, response, stringBody);
   }
 
-  solveChallenge(options, response, stringBody);
+  // 503 status is always a challenge
+  if (response.statusCode === 503) {
+    return solveChallenge(options, response, stringBody);
+  }
+
+  // All is good
+  processResponseBody(options, response, body);
 }
 
 function validate (options, response, body) {
@@ -205,6 +206,16 @@ function validate (options, response, body) {
 
 function solveChallenge (options, response, body) {
   var callback = options.callback;
+  var cause;
+  var error;
+
+  if (options.challengesToSolve === 0) {
+    cause = 'Cloudflare challenge loop';
+    error = new errors.CloudflareError(cause, options, response);
+    error.errorType = 4;
+
+    return callback(error);
+  }
 
   var timeout = options.cloudflareTimeout;
   var uri = response.request.uri;
@@ -213,11 +224,8 @@ function solveChallenge (options, response, body) {
   // The query string to send back to Cloudflare
   // var payload = { s, jschl_vc, jschl_answer, pass };
   var payload = {};
-
+  var sandbox;
   var match;
-  var cause;
-
-  var sandbox = createSandbox({ t: uri.hostname }, body);
 
   match = body.match(/name="s" value="(.+?)"/);
 
@@ -253,6 +261,7 @@ function solveChallenge (options, response, body) {
     .replace(/'; \d+'/g, '');
 
   try {
+    sandbox = createSandbox({ t: uri.hostname }, body);
     payload.jschl_answer = vm.runInNewContext(challenge, sandbox, VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
