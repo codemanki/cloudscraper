@@ -26,8 +26,8 @@ function defaults (params) {
       'Cache-Control': 'private',
       'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
     },
-    // Cloudflare requires a delay of 5 seconds, so wait for at least 6.
-    cloudflareTimeout: 6000,
+    // Cloudflare requires a delay of 4 seconds, so wait for at least 5.
+    cloudflareTimeout: 5000,
     // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
     followAllRedirects: true,
     // Support only this max challenges in row. If CF returns more, throw an error
@@ -128,8 +128,7 @@ function processRequestResponse (options, error, response, body) {
   var callback = options.callback;
 
   var stringBody;
-  var isChallengePresent;
-  var isRedirectChallengePresent;
+  var isRedirectChallenge;
 
   // Encoding is null so body should be a buffer object
   if (error || !body || !body.toString) {
@@ -137,6 +136,7 @@ function processRequestResponse (options, error, response, body) {
     return callback(new errors.RequestError(error, options, response));
   }
 
+  response.responseStartTime = Date.now();
   response.isCloudflare = response.statusCode > 399 &&
     /^cloudflare/i.test('' + response.caseless.get('server')) &&
     /text\/html/i.test('' + response.caseless.get('content-type'));
@@ -165,12 +165,7 @@ function processRequestResponse (options, error, response, body) {
     return processResponseBody(options, response, body);
   }
 
-  // This is a Cloudflare response with 503 status, check for challenges.
-  isChallengePresent = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
-  isRedirectChallengePresent = stringBody.indexOf('You are being redirected') !== -1 || stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
-  // isTargetPage = !isChallengePresent && !isRedirectChallengePresent;
-
-  if (isChallengePresent && options.challengesToSolve === 0) {
+  if (options.challengesToSolve === 0) {
     var cause = 'Cloudflare challenge loop';
     error = new errors.CloudflareError(cause, options, response);
     error.errorType = 4;
@@ -178,17 +173,15 @@ function processRequestResponse (options, error, response, body) {
     return callback(error);
   }
 
-  // If body contains specified string, solve challenge
-  if (isChallengePresent) {
-    setTimeout(function () {
-      solveChallenge(options, response, stringBody);
-    }, options.cloudflareTimeout);
-  } else if (isRedirectChallengePresent) {
-    setCookieAndReload(options, response, stringBody);
-  } else {
-    // All is good
-    processResponseBody(options, response, body);
+  // This is a Cloudflare response with 503 status, determine challenge type.
+  isRedirectChallenge = stringBody.indexOf('You are being redirected') !== -1 ||
+    stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
+
+  if (isRedirectChallenge) {
+    return void setCookieAndReload(options, response, stringBody);
   }
+
+  solveChallenge(options, response, stringBody);
 }
 
 function validate (options, response, body) {
@@ -213,6 +206,7 @@ function validate (options, response, body) {
 function solveChallenge (options, response, body) {
   var callback = options.callback;
 
+  var timeout = options.cloudflareTimeout;
   var uri = response.request.uri;
   // The JS challenge to be evaluated for answer/response.
   var challenge;
@@ -292,8 +286,9 @@ function solveChallenge (options, response, body) {
   options.qs = payload;
   options.challengesToSolve = options.challengesToSolve - 1;
 
-  // Make request with answer.
-  performRequest(options, false);
+  // Make request with answer after delay.
+  timeout -= Date.now() - response.responseStartTime;
+  setTimeout(performRequest, timeout, options, false);
 }
 
 function setCookieAndReload (options, response, body) {
@@ -331,20 +326,11 @@ function processResponseBody (options, response, body) {
     body = body.toString(options.realEncoding);
     // The resolveWithFullResponse option will resolve with the response
     // object. This changes the response.body so it is as expected.
-    response.body = body;
-
-    if (response.isCloudflare) {
-      // In case of real encoding, try to validate the response and find
-      // potential errors there, otherwise return the response as is.
-      try {
-        validate(options, response, body);
-      } catch (error) {
-        return callback(error);
-      }
-    }
 
     if (options.decodeEmails) {
       response.body = body = decodeEmails(body);
+    } else {
+      response.body = body;
     }
   }
 

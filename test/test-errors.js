@@ -422,43 +422,6 @@ describe('Cloudscraper', function () {
     done();
   });
 
-  it('should detect captcha in response body\'s real encoding', function (done) {
-    helper.router.get('/test', function (req, res) {
-      res.cloudflare().status(503).end();
-    });
-
-    var expectedParams = helper.extendParams({ realEncoding: 'fake-encoding' });
-    var options = { uri: uri, encoding: 'fake-encoding' };
-
-    var promise = cloudscraper.get(options, function (error) {
-      // errorType 1, means captcha is served
-      expect(error).to.be.instanceOf(errors.CaptchaError);
-      expect(error).to.have.property('error', 'captcha');
-      expect(error).to.have.property('errorType', 1);
-
-      expect(Request).to.be.calledOnceWithExactly(expectedParams);
-    });
-
-    // Replace the response body before cloudscraper processes it
-    promise.on('response', function (response) {
-      // Empty buffer but with non-zero length
-      response.body = Buffer.alloc(1);
-      response.body.toString = function (encoding) {
-        if (encoding === 'fake-encoding') {
-          return helper.getFixture('captcha.html');
-        }
-
-        if (encoding === 'utf8') {
-          return '<p>fake response body without captcha</p>';
-        }
-
-        throw new Error('Unexpected encoding: ' + encoding);
-      };
-    });
-
-    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
-  });
-
   it('should return error if cookie setting code evaluation fails', function (done) {
     // Change the cookie setting code so the vm will throw an error
     var html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
