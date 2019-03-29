@@ -219,8 +219,6 @@ function solveChallenge (options, response, body) {
 
   var timeout = options.cloudflareTimeout;
   var uri = response.request.uri;
-  // The JS challenge to be evaluated for answer/response.
-  var challenge;
   // The query string to send back to Cloudflare
   // var payload = { s, jschl_vc, jschl_answer, pass };
   var payload = {};
@@ -249,7 +247,7 @@ function solveChallenge (options, response, body) {
     return callback(new errors.ParserError(cause, options, response));
   }
 
-  challenge = match[1]
+  response.challenge = match[1]
     .replace(/a\.value\s*=\s*(.*)/, function (_, value) {
       return value.replace(/[A-Za-z0-9_$]+\.length/, uri.hostname.length);
     })
@@ -262,7 +260,7 @@ function solveChallenge (options, response, body) {
 
   try {
     sandbox = createSandbox({ t: uri.hostname }, body);
-    payload.jschl_answer = vm.runInNewContext(challenge, sandbox, VM_OPTIONS);
+    payload.jschl_answer = vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
     return callback(new errors.ParserError(error, options, response));
