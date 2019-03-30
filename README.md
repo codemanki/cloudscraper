@@ -10,9 +10,6 @@ Node.js library to bypass Cloudflare's anti-ddos page.
 [![Dependency Status](https://img.shields.io/david/codemanki/cloudscraper.svg?style=flat-square)](https://david-dm.org/codemanki/cloudscraper)
 [![Greenkeeper badge](https://badges.greenkeeper.io/codemanki/cloudscraper.svg?style=flat-square)](https://greenkeeper.io/)
 
-This library is a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape) with couple enhancements and test cases ;)
-. All grats to its author \m/
-
 If the page you want to access is protected by Cloudflare, it will return special page, which expects client to support Javascript to solve challenge.
 
 This small library encapsulates logic which extracts challenge, solves it, submits and returns the request page body.
@@ -221,6 +218,7 @@ Current Cloudflare implementation requires browser to respect the timeout of 5 s
  - [Leonardo Gatica](https://github.com/lgaticaq)
  - [Michael](https://github.com/roflmuffin)
  - [Kamikadze4GAME](https://github.com/Kamikadze4GAME)
+ - In the beginning cloudscraper was a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape). Thank you [Anorov](https://github.com/Anorov) for an inspiration.
 
 ## Dependencies
 * [request](https://github.com/request/request)
