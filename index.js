@@ -45,8 +45,8 @@ function defaults (params) {
       'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5',
       'Accept-Language': 'en-US,en;q=0.9'
     },
-    // Cloudflare requires a delay of 4 seconds, so wait for at least 5.
-    cloudflareTimeout: 5000,
+    // Reduce Cloudflare's timeout to cloudflareMaxTimeout if it is excessive
+    cloudflareMaxTimeout: 30000,
     // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
     followAllRedirects: true,
     // Support only this max challenges in row. If CF returns more, throw an error
@@ -100,9 +100,9 @@ function performRequest (options, isFirstRequest) {
       'got ' + typeof (options.challengesToSolve) + ' instead.');
   }
 
-  if (isNaN(options.cloudflareTimeout)) {
-    throw new TypeError('Expected `cloudflareTimeout` option to be a number, ' +
-      'got ' + typeof (options.cloudflareTimeout) + ' instead.');
+  if (isNaN(options.cloudflareMaxTimeout)) {
+    throw new TypeError('Expected `cloudflareMaxTimeout` option to be a number, ' +
+      'got ' + typeof (options.cloudflareMaxTimeout) + ' instead.');
   }
 
   // This should be the default export of either request or request-promise.
@@ -236,10 +236,10 @@ function solveChallenge (options, response, body) {
     return callback(error);
   }
 
-  var timeout = options.cloudflareTimeout;
+  var timeout = parseInt(options.cloudflareTimeout);
   var uri = response.request.uri;
   // The query string to send back to Cloudflare
-  // var payload = { s, jschl_vc, jschl_answer, pass };
+  // var payload = { s, jschl_vc, pass, jschl_answer };
   var payload = {};
   var sandbox;
   var match;
@@ -268,11 +268,28 @@ function solveChallenge (options, response, body) {
 
   payload.pass = match[1];
 
-  match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value\s*=.+?)\r?\n/);
+  match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value\s*=.+?)\r?\n(?:[^{<>]*},\s*(\d{4,}))?/);
 
   if (!match) {
     cause = 'setTimeout callback extraction failed';
     return callback(new errors.ParserError(cause, options, response));
+  }
+
+  if (isNaN(timeout)) {
+    if (match.length === 2) {
+      timeout = parseInt(match[2]);
+
+      if (timeout > options.cloudflareMaxTimeout) {
+        if (requestModule.debug) {
+          console.warn('Cloudflare\'s timeout is excessive: ' + (timeout / 1000) + 's');
+        }
+
+        timeout = options.cloudflareMaxTimeout;
+      }
+    } else {
+      cause = 'Failed to parse challenge timeout';
+      return callback(new errors.ParserError(cause, options, response));
+    }
   }
 
   response.challenge = match[1]

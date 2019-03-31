@@ -411,14 +411,14 @@ describe('Cloudscraper', function () {
     done();
   });
 
-  it('should throw a TypeError if cloudflareTimeout is not a number', function (done) {
+  it('should throw a TypeError if cloudflareMaxTimeout is not a number', function (done) {
     var spy = sinon.spy(function () {
-      var options = { uri: uri, cloudflareTimeout: 'abc' };
+      var options = { uri: uri, cloudflareMaxTimeout: 'abc' };
 
       cloudscraper.get(options, function () {});
     });
 
-    expect(spy).to.throw(TypeError, /`cloudflareTimeout` option .*number/);
+    expect(spy).to.throw(TypeError, /`cloudflareMaxTimeout` option .*number/);
     done();
   });
 
