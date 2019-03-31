@@ -1,5 +1,8 @@
 ## Change Log
 
+### v3.5.0 (31/03/2019)
+- [#174](https://github.com/codemanki/cloudscraper/pull/174) Update code to parse latest CF challenge
+
 ### v3.4.0 (27/03/2019)
 - [#165](https://github.com/codemanki/cloudscraper/pull/165) Fixing CF challenge parsing, respect `Retry-After` header when CF returns `429 Too Many Requests` error.
 - [#163](https://github.com/codemanki/cloudscraper/pull/163) Improve the accuracy of challenge timing. Throw error immediatelly without a delay
