@@ -302,9 +302,9 @@ describe('Cloudscraper', function () {
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
+        'pass': '1543827239.915-44n9IE20mS',
         // -5.33265406 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': -5.33265406 + helper.uri.hostname.length,
-        'pass': '1543827239.915-44n9IE20mS'
+        'jschl_answer': -5.33265406 + helper.uri.hostname.length
       },
       headers: {
         'Referer': uri
@@ -317,9 +317,9 @@ describe('Cloudscraper', function () {
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': 'a41fee3a9f041fea01f0cbf3e8e4d29b',
+        'pass': '1543827246.024-hvxyNA3rOg',
         // 1.9145049856 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': -1.9145049856 + helper.uri.hostname.length,
-        'pass': '1543827246.024-hvxyNA3rOg'
+        'jschl_answer': -1.9145049856 + helper.uri.hostname.length
       },
       headers: {
         'Referer': helper.resolve('/cdn-cgi/l/chk_jschl?' +

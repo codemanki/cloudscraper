@@ -257,6 +257,15 @@ function solveChallenge (options, response, body) {
 
   payload.jschl_vc = match[1];
 
+  match = body.match(/name="pass" value="(.+?)"/);
+
+  if (!match) {
+    cause = 'Attribute (pass) value extraction failed';
+    return callback(new errors.ParserError(cause, options, response));
+  }
+
+  payload.pass = match[1];
+
   match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value\s*=.+?)\r?\n/);
 
   if (!match) {
@@ -287,15 +296,6 @@ function solveChallenge (options, response, body) {
     cause = 'Challenge answer is not a number';
     return callback(new errors.ParserError(cause, options, response));
   }
-
-  match = body.match(/name="pass" value="(.+?)"/);
-
-  if (!match) {
-    cause = 'Attribute (pass) value extraction failed';
-    return callback(new errors.ParserError(cause, options, response));
-  }
-
-  payload.pass = match[1];
 
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
