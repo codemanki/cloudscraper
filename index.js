@@ -39,9 +39,11 @@ function defaults (params) {
     // Cookies should be enabled
     jar: requestModule.jar(),
     headers: {
+      'Connection': 'keep-alive',
       'User-Agent': DEFAULT_USER_AGENT,
       'Cache-Control': 'private',
-      'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+      'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5',
+      'Accept-Language': 'en-US,en;q=0.9'
     },
     // Cloudflare requires a delay of 4 seconds, so wait for at least 5.
     cloudflareTimeout: 5000,
@@ -257,6 +259,15 @@ function solveChallenge (options, response, body) {
 
   payload.jschl_vc = match[1];
 
+  match = body.match(/name="pass" value="(.+?)"/);
+
+  if (!match) {
+    cause = 'Attribute (pass) value extraction failed';
+    return callback(new errors.ParserError(cause, options, response));
+  }
+
+  payload.pass = match[1];
+
   match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value\s*=.+?)\r?\n/);
 
   if (!match) {
@@ -287,15 +298,6 @@ function solveChallenge (options, response, body) {
     cause = 'Challenge answer is not a number';
     return callback(new errors.ParserError(cause, options, response));
   }
-
-  match = body.match(/name="pass" value="(.+?)"/);
-
-  if (!match) {
-    cause = 'Attribute (pass) value extraction failed';
-    return callback(new errors.ParserError(cause, options, response));
-  }
-
-  payload.pass = match[1];
 
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
