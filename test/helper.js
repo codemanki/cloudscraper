@@ -20,9 +20,11 @@ var helper = {
       jar: request.jar(),
       uri: helper.resolve('/test'),
       headers: {
+        'Connection': 'keep-alive',
         'User-Agent': sinon.match.string,
         'Cache-Control': 'private',
-        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5',
+        'Accept-Language': 'en-US,en;q=0.9'
       },
       method: 'GET',
       encoding: null,

@@ -39,9 +39,11 @@ function defaults (params) {
     // Cookies should be enabled
     jar: requestModule.jar(),
     headers: {
+      'Connection': 'keep-alive',
       'User-Agent': DEFAULT_USER_AGENT,
       'Cache-Control': 'private',
-      'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
+      'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5',
+      'Accept-Language': 'en-US,en;q=0.9'
     },
     // Cloudflare requires a delay of 4 seconds, so wait for at least 5.
     cloudflareTimeout: 5000,
