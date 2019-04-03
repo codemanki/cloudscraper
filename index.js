@@ -129,12 +129,15 @@ function performRequest (options, isFirstRequest) {
     options.callback = request.callback;
   }
 
-  // The error event only provides an error argument.
   request.removeAllListeners('error')
-    .once('error', processRequestResponse.bind(null, options));
-  // The complete event only provides response and body arguments.
+    .once('error', function (error) {
+      onRequestResponse(options, error);
+    });
+
   request.removeAllListeners('complete')
-    .once('complete', processRequestResponse.bind(null, options, null));
+    .once('complete', function (response, body) {
+      onRequestResponse(options, null, response, body);
+    });
 
   // Indicate that this is a cloudscraper request, required by test/helper.
   request.cloudscraper = true;
@@ -143,12 +146,8 @@ function performRequest (options, isFirstRequest) {
 
 // The argument convention is options first where possible, options
 // always before response, and body always after response.
-function processRequestResponse (options, error, response, body) {
+function onRequestResponse (options, error, response, body) {
   var callback = options.callback;
-
-  var stringBody;
-  var isChallenge;
-  var isRedirectChallenge;
 
   // Encoding is null so body should be a buffer object
   if (error || !body || !body.toString) {
@@ -157,17 +156,27 @@ function processRequestResponse (options, error, response, body) {
   }
 
   response.responseStartTime = Date.now();
-  response.isCloudflare = /^cloudflare/i.test('' + response.caseless.get('server')) &&
-    /text\/html/i.test('' + response.caseless.get('content-type'));
+  response.isCloudflare = /^cloudflare/i.test('' + response.caseless.get('server'));
+  response.isHTML = /text\/html/i.test('' + response.caseless.get('content-type'));
 
   // If body isn't a buffer, this is a custom response body.
   if (!Buffer.isBuffer(body)) {
     return callback(null, response, body);
   }
 
-  if (!response.isCloudflare) {
-    return processResponseBody(options, response, body);
+  if (response.isCloudflare && response.isHTML) {
+    onCloudflareResponse(options, response, body);
+  } else {
+    processResponseBody(options, response, body);
   }
+}
+
+function onCloudflareResponse (options, response, body) {
+  var callback = options.callback;
+
+  var stringBody;
+  var isChallenge;
+  var isRedirectChallenge;
 
   if (body.length < 1) {
     // This is a 4xx-5xx Cloudflare response with an empty body.
@@ -320,19 +329,20 @@ function solveChallenge (options, response, body) {
 function setCookieAndReload (options, response, body) {
   var callback = options.callback;
 
-  var challenge = body.match(/S='([^']+)'/);
-  if (!challenge) {
+  var match = body.match(/S='([^']+)'/);
+
+  if (!match) {
     var cause = 'Cookie code extraction failed';
     return callback(new errors.ParserError(cause, options, response));
   }
 
-  var base64EncodedCode = challenge[1];
-  var cookieSettingCode = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
-
-  var sandbox = createSandbox();
+  var base64EncodedCode = match[1];
+  response.challenge = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
 
   try {
-    vm.runInNewContext(cookieSettingCode, sandbox, VM_OPTIONS);
+    var sandbox = createSandbox();
+    // Evaluate cookie setting code
+    vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
 
     options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, { ignoreError: true });
   } catch (error) {
@@ -353,11 +363,11 @@ function processResponseBody (options, response, body) {
     // The resolveWithFullResponse option will resolve with the response
     // object. This changes the response.body so it is as expected.
 
-    if (options.decodeEmails) {
-      response.body = body = decodeEmails(body);
-    } else {
-      response.body = body;
+    if (response.isHTML && options.decodeEmails) {
+      body = decodeEmails(body);
     }
+
+    response.body = body;
   }
 
   callback(null, response, body);
