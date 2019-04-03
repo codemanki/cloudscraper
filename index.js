@@ -287,7 +287,7 @@ function solveChallenge (options, response, body) {
     .replace(/'; \d+'/g, '');
 
   try {
-    sandbox = createSandbox({ t: uri.hostname }, body);
+    sandbox = createSandbox({ t: uri.hostname, g: String.fromCharCode }, body);
     payload.jschl_answer = vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
