@@ -112,6 +112,9 @@ cloudscraper(options, function(err, response, body) {
 });
 ```
 
+## Examples
+Check out the [examples folder](https://github.com/codemanki/cloudscraper/tree/master/examples) for various use cases.
+
 ## Advanced usage
 Cloudscraper wraps request and request-promise, so using cloudscraper is pretty much like using those two libraries.
  - Cloudscraper exposes [the same request methods as request](https://github.com/request/request#requestmethod):
@@ -155,8 +158,9 @@ var options = {
     'Cache-Control': 'private',
     'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
   },
-  // Cloudflare requires a delay of 4 seconds, so wait for at least 5.
-  cloudflareTimeout: 5000,
+  // Normaly Cloudscraper will take care of parsing out timeout for a challenge and handles it for you.
+  // If you want, you can reduce Cloudflare's timeout to cloudflareMaxTimeout if it is excessive
+  cloudflareMaxTimeout: 30000,
   // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
   followAllRedirects: true,
   // Support only this max challenges in row. If CF returns more, throw an error

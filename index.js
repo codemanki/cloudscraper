@@ -299,6 +299,8 @@ function solveChallenge (options, response, body) {
       cause = 'Failed to parse challenge timeout';
       return callback(new errors.ParserError(cause, options, response));
     }
+  } else {
+    console.warn('Warning: `cloudflareTimeout` is deprecated. Cloudscraper automatically handles timeout for you. Use `cloudflareMaxTimeout` to reduce timeout if you need to');
   }
 
   response.challenge = match[1]
