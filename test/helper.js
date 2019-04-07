@@ -31,6 +31,7 @@ var helper = {
       realEncoding: 'utf8',
       followAllRedirects: true,
       cloudflareTimeout: 1,
+      cloudflareMaxTimeout: 30000,
       challengesToSolve: 3,
       decodeEmails: false
     };
