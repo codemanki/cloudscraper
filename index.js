@@ -4,6 +4,7 @@ var vm = require('vm');
 var requestModule = require('request-promise');
 var errors = require('./errors');
 var decodeEmails = require('./lib/email-decode.js');
+var helpers = require('./lib/helpers');
 
 var USER_AGENTS = [
   'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
@@ -300,7 +301,7 @@ function solveChallenge (options, response, body) {
       return callback(new errors.ParserError(cause, options, response));
     }
   } else {
-    console.warn('Warning: `cloudflareTimeout` is deprecated. Cloudscraper automatically handles timeout for you. Use `cloudflareMaxTimeout` to reduce timeout if you need to');
+    helpers.deprecated('Warning: `cloudflareTimeout` is deprecated. Cloudscraper automatically handles timeout for you. Use `cloudflareMaxTimeout` to reduce timeout if you need to');
   }
 
   response.challenge = match[1]

@@ -12,7 +12,7 @@
     "errors.js"
   ],
   "scripts": {
-    "test": "npm run lint && nyc --reporter=html --reporter=text mocha",
+    "test": "npm run lint && NODE_ENV=test nyc --reporter=html --reporter=text mocha",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint --ext .json --ext .js ."
   },
