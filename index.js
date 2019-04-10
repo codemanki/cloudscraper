@@ -301,10 +301,8 @@ function solveChallenge (options, response, body) {
     }
   }
 
-  response.challenge = match[1]
-    .replace(/a\.value\s*=\s*(.*)/, function (_, value) {
-      return value.replace(/(["']); \d+\1/, '');
-    });
+  // Append a.value so it's always returned from the vm
+  response.challenge = match[1] + '; a.value';
 
   try {
     sandbox = createSandbox({ uri: uri, body: body });
