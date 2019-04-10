@@ -303,17 +303,11 @@ function solveChallenge (options, response, body) {
 
   response.challenge = match[1]
     .replace(/a\.value\s*=\s*(.*)/, function (_, value) {
-      return value.replace(/[A-Za-z0-9_$]+\.length/, uri.hostname.length);
-    })
-    .replace(/^\s*[a-z0-9_$]+\s*[=.](.+)/gmi, function (_, expr) {
-      // Retain the `k = "cf-dn-*" assignment
-      var match = expr.match(/([A-Za-z0-9_$]+)\s*=\s*['"]?cf-dn.+/);
-      return match !== null ? match[0] : '';
-    })
-    .replace(/'; \d+'/g, '');
+      return value.replace(/(["']); \d+\1/, '');
+    });
 
   try {
-    sandbox = createSandbox({ t: uri.hostname, g: String.fromCharCode }, body);
+    sandbox = createSandbox({ uri: uri, body: body });
     payload.jschl_answer = vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
@@ -357,7 +351,7 @@ function setCookieAndReload (options, response, body) {
   response.challenge = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
 
   try {
-    var sandbox = createSandbox();
+    var sandbox = createSandbox({});
     // Evaluate cookie setting code
     vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
 
@@ -390,8 +384,10 @@ function processResponseBody (options, response, body) {
   callback(null, response, body);
 }
 
-function createSandbox (context, body) {
-  if (arguments.length > 1) {
+function createSandbox (options) {
+  if (options.body) {
+    var body = options.body;
+    var href = 'http://' + options.uri.hostname + '/';
     var cache = Object.create(null);
     var keys = [];
 
@@ -401,6 +397,9 @@ function createSandbox (context, body) {
         return Buffer.from(str, 'base64').toString('binary');
       },
       document: {
+        createElement: function () {
+          return { firstChild: { href: href } };
+        },
         getElementById: function (id) {
           if (keys.indexOf(id) === -1) {
             var re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]+)');
@@ -413,7 +412,7 @@ function createSandbox (context, body) {
           return cache[id];
         }
       }
-    }, context);
+    }, options.context);
   }
 
   // Sandbox used in setCookieAndReload
@@ -422,7 +421,7 @@ function createSandbox (context, body) {
       reload: function () {}
     },
     document: {}
-  }, context);
+  }, options.context);
 }
 
 function randomUA () {
