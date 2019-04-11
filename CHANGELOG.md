@@ -1,4 +1,6 @@
 ## Change Log
+### v3.9.1 (11/04/2019)
+- Fix for the timeout parsing
 
 ### v3.9.0 (11/04/2019)
 - [#193](https://github.com/codemanki/cloudscraper/pull/193) Fix bug with setTimeout match length

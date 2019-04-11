@@ -285,7 +285,7 @@ function solveChallenge (options, response, body) {
   }
 
   if (isNaN(timeout)) {
-    if (match.length > 1) {
+    if (match.length > 2) {
       timeout = parseInt(match[2]);
 
       if (timeout > options.cloudflareMaxTimeout) {
