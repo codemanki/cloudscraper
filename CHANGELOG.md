@@ -1,4 +1,5 @@
 ## Change Log
+
 ### v3.9.1 (11/04/2019)
 - Fix for the timeout parsing
 
