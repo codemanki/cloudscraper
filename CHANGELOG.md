@@ -1,5 +1,8 @@
 ## Change Log
 
+### v3.9.0 (11/04/2019)
+- [#193](https://github.com/codemanki/cloudscraper/pull/193) Fix bug with setTimeout match length
+
 ### v3.8.0 (11/04/2019)
 - [#191](https://github.com/codemanki/cloudscraper/pull/191) Update code to parse latest CF challenge
 
