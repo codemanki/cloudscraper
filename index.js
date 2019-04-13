@@ -139,6 +139,11 @@ function performRequest (options, isFirstRequest) {
       onRequestResponse(options, null, response, body);
     });
 
+  // Avoid uncaught exceptions, because request is a promise.
+  request.catch(function (error) {
+    return;
+  });
+
   // Indicate that this is a cloudscraper request, required by test/helper.
   request.cloudscraper = true;
   return request;
