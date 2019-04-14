@@ -9,6 +9,8 @@ node_js:
 
 sudo: false
 
+before_install: npm i --save-only request brotli
+install: npm i
 after_success: npm run coverage
 
 notifications:
