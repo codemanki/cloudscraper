@@ -30,7 +30,8 @@ var helper = {
       cloudflareTimeout: 1,
       cloudflareMaxTimeout: 30000,
       challengesToSolve: 3,
-      decodeEmails: false
+      decodeEmails: false,
+      gzip: true
     };
   },
   getFixture: function (fileName) {
