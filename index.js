@@ -385,7 +385,7 @@ function createSandbox (options = {}) {
         },
         getElementById: function (id) {
           if (keys.indexOf(id) === -1) {
-            const re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]+)');
+            const re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]*)');
             const match = body.match(re);
 
             keys.push(id);
