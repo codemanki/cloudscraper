@@ -9,17 +9,17 @@
 // 1. There is a non-enumerable errorType attribute.
 // 2. The error constructor is hidden from the stacktrace.
 
-var EOL = require('os').EOL;
-var original = require('request-promise-core/errors');
-var http = require('http');
+const EOL = require('os').EOL;
+const original = require('request-promise-core/errors');
+const http = require('http');
 
-var BUG_REPORT = format([
+const BUG_REPORT = format([
   '### Cloudflare may have changed their technique, or there may be a bug.',
   '### Bug Reports: https://github.com/codemanki/cloudscraper/issues',
   '### Check the detailed exception message that follows for the cause.'
 ]);
 
-var ERROR_CODES = {
+const ERROR_CODES = {
   // Non-standard 5xx server error HTTP status codes
   '520': 'Web server is returning an unknown error',
   '521': 'Web server is down',
@@ -48,22 +48,22 @@ ERROR_CODES[1006] =
     ERROR_CODES[1007] =
         ERROR_CODES[1008] = 'Access Denied: Your IP address has been banned';
 
-var OriginalError = original.RequestError;
+const OriginalError = original.RequestError;
 
-var RequestError = create('RequestError', 0);
-var CaptchaError = create('CaptchaError', 1);
+const RequestError = create('RequestError', 0);
+const CaptchaError = create('CaptchaError', 1);
 
 // errorType 4 is a CloudflareError so this constructor is reused.
-var CloudflareError = create('CloudflareError', 2, function (error) {
+const CloudflareError = create('CloudflareError', 2, function (error) {
   if (!isNaN(error.cause)) {
-    var description = ERROR_CODES[error.cause] || http.STATUS_CODES[error.cause];
+    const description = ERROR_CODES[error.cause] || http.STATUS_CODES[error.cause];
     if (description) {
       error.message = error.cause + ', ' + description;
     }
   }
 });
 
-var ParserError = create('ParserError', 3, function (error) {
+const ParserError = create('ParserError', 3, function (error) {
   error.message = BUG_REPORT + error.message;
 });
 

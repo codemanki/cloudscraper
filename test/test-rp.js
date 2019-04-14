@@ -2,19 +2,19 @@
 /* eslint-env node, mocha */
 'use strict';
 
-var cloudscraper = require('../index');
-var request      = require('request-promise');
-var helper       = require('./helper');
+const cloudscraper = require('../index');
+const request      = require('request-promise');
+const helper       = require('./helper');
 
-var sinon  = require('sinon');
-var expect = require('chai').expect;
+const sinon  = require('sinon');
+const expect = require('chai').expect;
 
 describe('Cloudscraper', function () {
-  var sandbox;
-  var Request;
-  var uri;
+  let sandbox;
+  let Request;
+  let uri;
 
-  var requestedPage = helper.getFixture('requested_page.html');
+  const requestedPage = helper.getFixture('requested_page.html');
 
   before(function (done) {
     helper.listen(function () {
@@ -46,7 +46,7 @@ describe('Cloudscraper', function () {
       res.send(requestedPage);
     });
 
-    var expectedParams = helper.extendParams({ callback: undefined });
+    const expectedParams = helper.extendParams({ callback: undefined });
 
     return cloudscraper.get(uri).then(function (body) {
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
@@ -59,7 +59,7 @@ describe('Cloudscraper', function () {
       res.send(requestedPage);
     });
 
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       callback: undefined,
       resolveWithFullResponse: true
     });
@@ -67,7 +67,7 @@ describe('Cloudscraper', function () {
     // The method is implicitly GET
     delete expectedParams.method;
 
-    var options = {
+    const options = {
       uri: uri,
       resolveWithFullResponse: true
     };
@@ -86,7 +86,7 @@ describe('Cloudscraper', function () {
       res.endAbruptly();
     });
 
-    var caught = false;
+    let caught = false;
 
     cloudscraper(uri)
       .catch(function () {
@@ -102,7 +102,7 @@ describe('Cloudscraper', function () {
       res.endAbruptly();
     });
 
-    var caught = false;
+    let caught = false;
 
     cloudscraper(uri)
       .then(function () {
