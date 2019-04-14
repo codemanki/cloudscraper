@@ -18,9 +18,9 @@ module.exports = defaults.call(requestModule);
 
 function defaults (params) {
   // isCloudScraper === !isRequestModule
-  var isRequestModule = this === requestModule;
+  const isRequestModule = this === requestModule;
 
-  var defaultParams = (!isRequestModule && this.defaultParams) || {
+  let defaultParams = (!isRequestModule && this.defaultParams) || {
     requester: requestModule,
     // Cookies should be enabled
     jar: requestModule.jar(),
@@ -38,7 +38,7 @@ function defaults (params) {
   // Object.assign requires at least nodejs v4, request only test/supports v6+
   defaultParams = Object.assign({}, defaultParams, params);
 
-  var cloudscraper = requestModule.defaults
+  const cloudscraper = requestModule.defaults
     .call(this, defaultParams, function (options) {
       return performRequest(options, true);
     });
@@ -86,14 +86,14 @@ function performRequest (options, isFirstRequest) {
   }
 
   // This should be the default export of either request or request-promise.
-  var requester = options.requester;
+  const requester = options.requester;
 
   if (typeof requester !== 'function') {
     throw new TypeError('Expected `requester` option to be a function, got ' +
         typeof (requester) + ' instead.');
   }
 
-  var request = requester(options);
+  const request = requester(options);
 
   // We must define the host header ourselves to preserve case and order.
   if (request.getHeader('host') === HOST) {
@@ -124,7 +124,7 @@ function performRequest (options, isFirstRequest) {
       onRequestResponse(options, null, response, body);
     });
 
-  // Indicate that this is a cloudscraper request, required by test/helper.
+  // Indicate that this is a cloudscraper request
   request.cloudscraper = true;
   return request;
 }
@@ -132,7 +132,7 @@ function performRequest (options, isFirstRequest) {
 // The argument convention is options first where possible, options
 // always before response, and body always after response.
 function onRequestResponse (options, error, response, body) {
-  var callback = options.callback;
+  const callback = options.callback;
 
   // Encoding is null so body should be a buffer object
   if (error || !body || !body.toString) {
@@ -157,11 +157,11 @@ function onRequestResponse (options, error, response, body) {
 }
 
 function onCloudflareResponse (options, response, body) {
-  var callback = options.callback;
+  const callback = options.callback;
 
-  var stringBody;
-  var isChallenge;
-  var isRedirectChallenge;
+  let stringBody;
+  let isChallenge;
+  let isRedirectChallenge;
 
   if (body.length < 1) {
     // This is a 4xx-5xx Cloudflare response with an empty body.
@@ -199,7 +199,7 @@ function onCloudflareResponse (options, response, body) {
 }
 
 function validate (options, response, body) {
-  var match;
+  let match;
 
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
@@ -210,7 +210,7 @@ function validate (options, response, body) {
   match = body.match(/<\w+\s+class="cf-error-code">(.*)<\/\w+>/i);
 
   if (match) {
-    var code = parseInt(match[1]);
+    let code = parseInt(match[1]);
     throw new errors.CloudflareError(code, options, response);
   }
 
@@ -218,9 +218,13 @@ function validate (options, response, body) {
 }
 
 function solveChallenge (options, response, body) {
-  var callback = options.callback;
-  var cause;
-  var error;
+  const callback = options.callback;
+  const uri = response.request.uri;
+  // The query string to send back to Cloudflare
+  const payload = { /* s, jschl_vc, pass, jschl_answer */ };
+
+  let cause;
+  let error;
 
   if (options.challengesToSolve === 0) {
     cause = 'Cloudflare challenge loop';
@@ -230,13 +234,9 @@ function solveChallenge (options, response, body) {
     return callback(error);
   }
 
-  var timeout = parseInt(options.cloudflareTimeout);
-  var uri = response.request.uri;
-  // The query string to send back to Cloudflare
-  // var payload = { s, jschl_vc, pass, jschl_answer };
-  var payload = {};
-  var sandbox;
-  var match;
+  let timeout = parseInt(options.cloudflareTimeout);
+  let sandbox;
+  let match;
 
   match = body.match(/name="s" value="(.+?)"/);
 
@@ -321,20 +321,20 @@ function solveChallenge (options, response, body) {
 }
 
 function setCookieAndReload (options, response, body) {
-  var callback = options.callback;
+  const callback = options.callback;
 
-  var match = body.match(/S='([^']+)'/);
+  const match = body.match(/S='([^']+)'/);
 
   if (!match) {
-    var cause = 'Cookie code extraction failed';
+    const cause = 'Cookie code extraction failed';
     return callback(new errors.ParserError(cause, options, response));
   }
 
-  var base64EncodedCode = match[1];
+  const base64EncodedCode = match[1];
   response.challenge = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
 
   try {
-    var sandbox = createSandbox({});
+    const sandbox = createSandbox();
     // Evaluate cookie setting code
     vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
 
@@ -350,7 +350,7 @@ function setCookieAndReload (options, response, body) {
 }
 
 function processResponseBody (options, response, body) {
-  var callback = options.callback;
+  const callback = options.callback;
 
   if (typeof options.realEncoding === 'string') {
     body = body.toString(options.realEncoding);
@@ -367,12 +367,12 @@ function processResponseBody (options, response, body) {
   callback(null, response, body);
 }
 
-function createSandbox (options) {
+function createSandbox (options = {}) {
   if (options.body) {
-    var body = options.body;
-    var href = 'http://' + options.uri.hostname + '/';
-    var cache = Object.create(null);
-    var keys = [];
+    const body = options.body;
+    const href = 'http://' + options.uri.hostname + '/';
+    const cache = Object.create(null);
+    const keys = [];
 
     // Sandbox for standard IUAM JS challenge
     return Object.assign({
@@ -385,8 +385,8 @@ function createSandbox (options) {
         },
         getElementById: function (id) {
           if (keys.indexOf(id) === -1) {
-            var re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]+)');
-            var match = body.match(re);
+            const re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]+)');
+            const match = body.match(re);
 
             keys.push(id);
             cache[id] = match === null ? match : { innerHTML: match[1] };

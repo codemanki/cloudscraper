@@ -2,20 +2,20 @@
 /* eslint-env node, mocha */
 'use strict';
 
-var cloudscraper = require('../index');
-var request      = require('request-promise');
-var helper       = require('./helper');
-var querystring  = require('querystring');
+const cloudscraper = require('../index');
+const request      = require('request-promise');
+const helper       = require('./helper');
+const querystring  = require('querystring');
 
-var sinon   = require('sinon');
-var expect  = require('chai').expect;
+const sinon   = require('sinon');
+const expect  = require('chai').expect;
 
 describe('Cloudscraper', function () {
-  var sandbox;
-  var Request;
-  var uri;
+  let sandbox;
+  let Request;
+  let uri;
 
-  var requestedPage = helper.getFixture('requested_page.html');
+  const requestedPage = helper.getFixture('requested_page.html');
 
   before(function (done) {
     helper.listen(function () {
@@ -43,16 +43,16 @@ describe('Cloudscraper', function () {
   });
 
   it('should return requested page, in the specified encoding', function (done) {
-    var expectedBody = Buffer.from(requestedPage).toString('utf16le');
+    const expectedBody = Buffer.from(requestedPage).toString('utf16le');
 
     helper.router.get('/test', function (req, res) {
       res.send(requestedPage);
     });
 
-    var expectedParams = helper.extendParams({ realEncoding: 'utf16le' });
-    var options = { uri: uri, encoding: 'utf16le' };
+    const expectedParams = helper.extendParams({ realEncoding: 'utf16le' });
+    const options = { uri: uri, encoding: 'utf16le' };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal(expectedBody);
@@ -62,16 +62,16 @@ describe('Cloudscraper', function () {
   });
 
   it('should return json', function (done) {
-    var expectedBody = { a: 'test' };
+    const expectedBody = { a: 'test' };
 
     helper.router.get('/test', function (req, res) {
       res.send(expectedBody);
     });
 
-    var expectedParams = helper.extendParams({ json: true });
-    var options = { uri: uri, json: true };
+    const expectedParams = helper.extendParams({ json: true });
+    const options = { uri: uri, json: true };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.eql(expectedBody);
@@ -86,10 +86,10 @@ describe('Cloudscraper', function () {
     });
 
     // Disable status code checking
-    var expectedParams = helper.extendParams({ simple: false });
-    var options = { uri: uri, simple: false };
+    const expectedParams = helper.extendParams({ simple: false });
+    const options = { uri: uri, simple: false };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal('xyz');
@@ -103,7 +103,7 @@ describe('Cloudscraper', function () {
       res.send(requestedPage);
     });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
       expect(body).to.be.equal(requestedPage);
@@ -113,13 +113,13 @@ describe('Cloudscraper', function () {
   });
 
   it('should not trigger any error if recaptcha is present in page not protected by CF', function (done) {
-    var expectedBody = helper.getFixture('page_with_recaptcha.html');
+    const expectedBody = helper.getFixture('page_with_recaptcha.html');
 
     helper.router.get('/test', function (req, res) {
       res.send(expectedBody);
     });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
       expect(body).to.be.equal(expectedBody);
@@ -138,7 +138,7 @@ describe('Cloudscraper', function () {
       });
 
     // Second call to Request will have challenge solution
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '89cdff5eaa25923e0f26e29e5195dce9',
@@ -152,7 +152,7 @@ describe('Cloudscraper', function () {
       challengesToSolve: 2
     });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -176,7 +176,7 @@ describe('Cloudscraper', function () {
       });
 
     // Second call to Request will have challenge solution
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '346b959db0cfa38f9938acc11d6e1e6e',
@@ -190,7 +190,7 @@ describe('Cloudscraper', function () {
       challengesToSolve: 2
     });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -214,7 +214,7 @@ describe('Cloudscraper', function () {
       });
 
     // Second call to Request will have challenge solution
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         'jschl_vc': '18e0eb4e7cc844880cd9822df9d8546e',
@@ -228,7 +228,7 @@ describe('Cloudscraper', function () {
       challengesToSolve: 2
     });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -251,7 +251,7 @@ describe('Cloudscraper', function () {
       });
 
     // Second call to Request will have challenge solution
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
         's': '08ee9f79382c9f784ef868f239a0984261a28b2f-1553213547-1800-AXjMT2d0Sx0fifn2gHCBp7sjO3hmbH5Pab9lPE92HxBLetotfG2HQ0U8ioQ2CJwOMGV5pmmBmffUDmmyxIyCuRCBOxecZXzYCBZZReVFCTXgIlpXL8ZcztRhE9Bm3BNGfg==',
@@ -265,7 +265,7 @@ describe('Cloudscraper', function () {
       challengesToSolve: 2
     });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -280,7 +280,7 @@ describe('Cloudscraper', function () {
 
   it('should resolve 2 consequent challenges', function (done) {
     // Cloudflare is enabled for site. It returns a page with JS challenge
-    var additionalChallenge = true;
+    let additionalChallenge = true;
 
     helper.router
       .get('/test', function (req, res) {
@@ -296,8 +296,8 @@ describe('Cloudscraper', function () {
         }
       });
 
-    var firstParams  = helper.extendParams({ resolveWithFullResponse: true });
-    var secondParams = helper.extendParams({
+    const firstParams  = helper.extendParams({ resolveWithFullResponse: true });
+    const secondParams = helper.extendParams({
       resolveWithFullResponse: true,
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
@@ -312,7 +312,7 @@ describe('Cloudscraper', function () {
       challengesToSolve: 2
     });
 
-    var thirdParams = helper.extendParams({
+    const thirdParams = helper.extendParams({
       resolveWithFullResponse: true,
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
@@ -328,9 +328,9 @@ describe('Cloudscraper', function () {
       challengesToSolve: 1
     });
 
-    var options = { uri: uri, resolveWithFullResponse: true };
+    const options = { uri: uri, resolveWithFullResponse: true };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledThrice;
@@ -349,16 +349,16 @@ describe('Cloudscraper', function () {
       res.send(requestedPage);
     });
 
-    var formData = { some: 'data' };
+    const formData = { some: 'data' };
 
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       method: 'POST',
       formData: formData
     });
 
-    var options = { uri: uri, formData: formData };
+    const options = { uri: uri, formData: formData };
 
-    var promise = cloudscraper.post(options, function (error, response, body) {
+    const promise = cloudscraper.post(options, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal(requestedPage);
@@ -372,9 +372,9 @@ describe('Cloudscraper', function () {
       res.send(requestedPage);
     });
 
-    var expectedParams = helper.extendParams({ method: 'DELETE' });
+    const expectedParams = helper.extendParams({ method: 'DELETE' });
 
-    var promise = cloudscraper.delete(uri, function (error, response, body) {
+    const promise = cloudscraper.delete(uri, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal(requestedPage);
@@ -388,12 +388,12 @@ describe('Cloudscraper', function () {
       res.send(requestedPage);
     });
 
-    var expectedBody = Buffer.from(requestedPage, 'utf8');
-    var expectedParams = helper.extendParams({ realEncoding: null });
+    const expectedBody = Buffer.from(requestedPage, 'utf8');
+    const expectedParams = helper.extendParams({ realEncoding: null });
 
-    var options = { uri: uri, encoding: null };
+    const options = { uri: uri, encoding: null };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.eql(expectedBody);
@@ -412,12 +412,12 @@ describe('Cloudscraper', function () {
       }
     });
 
-    var expectedParams = helper.extendParams({ challengesToSolve: 2 });
+    const expectedParams = helper.extendParams({ challengesToSolve: 2 });
 
     // We need to override cloudscraper's default jar for this test
-    var options = { uri: uri, jar: helper.defaultParams.jar };
+    const options = { uri: uri, jar: helper.defaultParams.jar };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -443,12 +443,12 @@ describe('Cloudscraper', function () {
         }
       });
 
-    var firstParams  = helper.extendParams({
+    const firstParams  = helper.extendParams({
       proxy: helper.uri.href,
       uri: 'http://example-site.dev/test'
     });
 
-    var secondParams = helper.extendParams({
+    const secondParams = helper.extendParams({
       proxy: helper.uri.href,
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
@@ -463,12 +463,12 @@ describe('Cloudscraper', function () {
       challengesToSolve: 2
     });
 
-    var options = {
+    const options = {
       proxy: helper.uri.href,
       uri: 'http://example-site.dev/test'
     };
 
-    var promise = cloudscraper.get(options, function (error, response, body) {
+    const promise = cloudscraper.get(options, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -491,16 +491,16 @@ describe('Cloudscraper', function () {
       }
     });
 
-    var customJar = request.jar();
+    const customJar = request.jar();
 
-    var firstParams  = helper.extendParams({ jar: customJar });
-    var secondParams = helper.extendParams({
+    const firstParams  = helper.extendParams({ jar: customJar });
+    const secondParams = helper.extendParams({
       jar: customJar,
       challengesToSolve: 2
     });
 
     // We need to override cloudscraper's default jar for this test
-    var options = { uri: uri, jar: customJar };
+    const options = { uri: uri, jar: customJar };
 
     customJar.setCookie('custom cookie', 'http://custom-site.dev/');
 
@@ -513,7 +513,7 @@ describe('Cloudscraper', function () {
 
       expect(body).to.be.equal(requestedPage);
 
-      var customCookie = customJar.getCookieString('http://custom-site.dev/');
+      let customCookie = customJar.getCookieString('http://custom-site.dev/');
       expect(customCookie).to.equal('custom cookie');
 
       cloudscraper.get(options, function (error) {
@@ -531,7 +531,7 @@ describe('Cloudscraper', function () {
   it('should define custom defaults function', function (done) {
     expect(cloudscraper.defaults).to.not.equal(request.defaults);
 
-    var custom = cloudscraper.defaults({ challengesToSolve: 5 });
+    const custom = cloudscraper.defaults({ challengesToSolve: 5 });
     expect(custom.defaults).to.equal(cloudscraper.defaults);
     done();
   });
@@ -545,11 +545,11 @@ describe('Cloudscraper', function () {
         res.sendFixture('page_with_emails.html');
       });
 
-    var cf = cloudscraper.defaults({ decodeEmails: true });
+    const cf = cloudscraper.defaults({ decodeEmails: true });
 
-    var firstParams = helper.extendParams({ decodeEmails: true });
+    const firstParams = helper.extendParams({ decodeEmails: true });
 
-    var promise = cf.get(uri, function (error, response, body) {
+    const promise = cf.get(uri, function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -570,14 +570,14 @@ describe('Cloudscraper', function () {
         res.send(requestedPage);
       });
 
-    var cf = cloudscraper.defaults({ baseUrl: helper.uri.href });
+    const cf = cloudscraper.defaults({ baseUrl: helper.uri.href });
 
-    var firstParams = helper.extendParams({
+    const firstParams = helper.extendParams({
       baseUrl: helper.uri.href,
       uri: '/test'
     });
 
-    var promise = cf.get('/test', function (error, response, body) {
+    const promise = cf.get('/test', function (error, response, body) {
       expect(error).to.be.null;
 
       expect(Request).to.be.calledTwice;
@@ -599,16 +599,16 @@ describe('Cloudscraper', function () {
         res.send(requestedPage);
       });
 
-    var expectedParams = helper.extendParams({ cloudflareTimeout: 50 });
+    const expectedParams = helper.extendParams({ cloudflareTimeout: 50 });
 
-    var start = Date.now();
-    var options = { uri: uri, cloudflareTimeout: 50 };
+    const start = Date.now();
+    const options = { uri: uri, cloudflareTimeout: 50 };
 
-    var promise = cloudscraper.get(options, function (error) {
+    const promise = cloudscraper.get(options, function (error) {
       expect(error).to.be.null;
       expect(Request.firstCall).to.be.calledWithExactly(expectedParams);
 
-      var elapsed = Date.now() - start;
+      const elapsed = Date.now() - start;
       // Aiming to be within ~150ms of specified timeout
       expect(elapsed >= 50 && elapsed <= 200).to.be.ok;
     });
@@ -617,8 +617,8 @@ describe('Cloudscraper', function () {
   });
 
   it('sandbox.document.getElementById should not error', function (done) {
-    var html = helper.getFixture('js_challenge_21_03_2019.html');
-    var statements = 'document.getElementById("missing");'.repeat(2);
+    const html = helper.getFixture('js_challenge_21_03_2019.html');
+    const statements = 'document.getElementById("missing");'.repeat(2);
 
     helper.router
       .get('/test', function (req, res) {
@@ -629,7 +629,7 @@ describe('Cloudscraper', function () {
         res.send(requestedPage);
       });
 
-    var promise = cloudscraper.get(uri, function (error, response, body) {
+    const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledTwice;
     });
