@@ -351,7 +351,7 @@ function onCaptcha (options, response, body) {
   let cause;
   let match;
 
-  match = body.match(/<form(?: [^<>]*)? id=["']?challenge-form['"]?(?: [^<>]*)?>([\S\s]*?)<\/form>/g);
+  match = body.match(/<form(?: [^<>]*)? id=["']?challenge-form['"]?(?: [^<>]*)?>([\S\s]*?)<\/form>/);
   if (!match) {
     cause = 'Challenge form extraction failed';
     return callback(new ParserError(cause, options, response));
