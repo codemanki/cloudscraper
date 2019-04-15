@@ -433,7 +433,7 @@ function onSubmitCaptcha (options, response) {
   options.qs = response.captcha.form;
   // Use the original uri as the referer and to construct the form action.
   options.headers['Referer'] = uri.href;
-  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_captcha';
 
   performRequest(options, false);
 }
