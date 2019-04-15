@@ -387,7 +387,7 @@ function onCaptcha (options, response, body) {
     if (name) {
       value = inputs[i].match(/value=["']?([^\s"'<>]*)/);
       if (value) {
-        payload[name[0]] = value[0];
+        payload[name[1]] = value[1];
       }
     }
   }
