@@ -1,19 +1,19 @@
 'use strict';
 
-const vm = require('vm');
 const requestModule = require('request-promise');
-const errors = require('./errors');
+const sandbox = require('./lib/sandbox');
 const decodeEmails = require('./lib/email-decode.js');
 const getDefaultHeaders = require('./lib/headers');
 const brotli = require('./lib/brotli');
 
-const HOST = Symbol('host');
+const {
+  RequestError,
+  CaptchaError,
+  CloudflareError,
+  ParserError
+} = require('./errors');
 
-const VM_OPTIONS = {
-  contextOrigin: 'cloudflare:challenge.js',
-  contextCodeGeneration: { strings: true, wasm: false },
-  timeout: 5000
-};
+const HOST = Symbol('host');
 
 module.exports = defaults.call(requestModule);
 
@@ -43,6 +43,7 @@ function defaults (params) {
 
   const cloudscraper = requestModule.defaults
     .call(this, defaultParams, function (options) {
+      validateRequest(options);
       return performRequest(options, true);
     });
 
@@ -62,9 +63,7 @@ function defaults (params) {
   return cloudscraper;
 }
 
-// This function is wrapped to ensure that we get new options on first call.
-// The options object is reused in subsequent calls when calling it directly.
-function performRequest (options, isFirstRequest) {
+function validateRequest (options) {
   // Prevent overwriting realEncoding in subsequent calls
   if (!('realEncoding' in options)) {
     // Can't just do the normal options.encoding || 'utf8'
@@ -88,14 +87,20 @@ function performRequest (options, isFirstRequest) {
       'got ' + typeof (options.cloudflareMaxTimeout) + ' instead.');
   }
 
+  if (typeof options.requester !== 'function') {
+    throw new TypeError('Expected `requester` option to be a function, got ' +
+      typeof (options.requester) + ' instead.');
+  }
+}
+
+// This function is wrapped to ensure that we get new options on first call.
+// The options object is reused in subsequent calls when calling it directly.
+function performRequest (options, isFirstRequest) {
   // This should be the default export of either request or request-promise.
   const requester = options.requester;
 
-  if (typeof requester !== 'function') {
-    throw new TypeError('Expected `requester` option to be a function, got ' +
-        typeof (requester) + ' instead.');
-  }
-
+  // Note that request is always an instanceof ReadableStream, EventEmitter
+  // If the requester is request-promise, it is also thenable.
   const request = requester(options);
 
   // We must define the host header ourselves to preserve case and order.
@@ -140,7 +145,7 @@ function onRequestResponse (options, error, response, body) {
   // Encoding is null so body should be a buffer object
   if (error || !body || !body.toString) {
     // Pure request error (bad connection, wrong url, etc)
-    return callback(new errors.RequestError(error, options, response));
+    return callback(new RequestError(error, options, response));
   }
 
   response.responseStartTime = Date.now();
@@ -156,7 +161,7 @@ function onRequestResponse (options, error, response, body) {
   if (/\bbr\b/i.test('' + response.caseless.get('content-encoding'))) {
     if (!brotli.isAvailable) {
       const cause = 'Received a Brotli compressed response. Please install brotli';
-      return callback(new errors.RequestError(cause, options, response));
+      return callback(new RequestError(cause, options, response));
     }
 
     response.body = body = brotli.decompress(body);
@@ -165,7 +170,7 @@ function onRequestResponse (options, error, response, body) {
   if (response.isCloudflare && response.isHTML) {
     onCloudflareResponse(options, response, body);
   } else {
-    processResponseBody(options, response, body);
+    onRequestComplete(options, response, body);
   }
 }
 
@@ -178,7 +183,7 @@ function onCloudflareResponse (options, response, body) {
 
   if (body.length < 1) {
     // This is a 4xx-5xx Cloudflare response with an empty body.
-    return callback(new errors.CloudflareError(response.statusCode, options, response));
+    return callback(new CloudflareError(response.statusCode, options, response));
   }
 
   stringBody = body.toString('utf8');
@@ -186,29 +191,34 @@ function onCloudflareResponse (options, response, body) {
   try {
     validate(options, response, stringBody);
   } catch (error) {
+    if (error instanceof CaptchaError && typeof options.onCaptcha === 'function') {
+      // Give users a chance to solve the reCAPTCHA via services such as anti-captcha.com
+      return onCaptcha(options, response, stringBody);
+    }
+
     return callback(error);
   }
 
   isChallenge = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
 
   if (isChallenge) {
-    return solveChallenge(options, response, stringBody);
+    return onChallenge(options, response, stringBody);
   }
 
   isRedirectChallenge = stringBody.indexOf('You are being redirected') !== -1 ||
     stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
 
   if (isRedirectChallenge) {
-    return setCookieAndReload(options, response, stringBody);
+    return onRedirectChallenge(options, response, stringBody);
   }
 
   // 503 status is always a challenge
   if (response.statusCode === 503) {
-    return solveChallenge(options, response, stringBody);
+    return onChallenge(options, response, stringBody);
   }
 
   // All is good
-  processResponseBody(options, response, body);
+  onRequestComplete(options, response, body);
 }
 
 function validate (options, response, body) {
@@ -216,7 +226,9 @@ function validate (options, response, body) {
 
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
-    throw new errors.CaptchaError('captcha', options, response);
+    // Convenience boolean
+    response.isCaptcha = true;
+    throw new CaptchaError('captcha', options, response);
   }
 
   // Trying to find '<span class="cf-error-code">1006</span>'
@@ -224,13 +236,13 @@ function validate (options, response, body) {
 
   if (match) {
     let code = parseInt(match[1]);
-    throw new errors.CloudflareError(code, options, response);
+    throw new CloudflareError(code, options, response);
   }
 
   return false;
 }
 
-function solveChallenge (options, response, body) {
+function onChallenge (options, response, body) {
   const callback = options.callback;
   const uri = response.request.uri;
   // The query string to send back to Cloudflare
@@ -241,45 +253,40 @@ function solveChallenge (options, response, body) {
 
   if (options.challengesToSolve === 0) {
     cause = 'Cloudflare challenge loop';
-    error = new errors.CloudflareError(cause, options, response);
+    error = new CloudflareError(cause, options, response);
     error.errorType = 4;
 
     return callback(error);
   }
 
   let timeout = parseInt(options.cloudflareTimeout);
-  let sandbox;
   let match;
 
   match = body.match(/name="s" value="(.+?)"/);
-
   if (match) {
     payload.s = match[1];
   }
 
   match = body.match(/name="jschl_vc" value="(\w+)"/);
-
   if (!match) {
     cause = 'challengeId (jschl_vc) extraction failed';
-    return callback(new errors.ParserError(cause, options, response));
+    return callback(new ParserError(cause, options, response));
   }
 
   payload.jschl_vc = match[1];
 
   match = body.match(/name="pass" value="(.+?)"/);
-
   if (!match) {
     cause = 'Attribute (pass) value extraction failed';
-    return callback(new errors.ParserError(cause, options, response));
+    return callback(new ParserError(cause, options, response));
   }
 
   payload.pass = match[1];
 
   match = body.match(/getElementById\('cf-content'\)[\s\S]+?setTimeout.+?\r?\n([\s\S]+?a\.value\s*=.+?)\r?\n(?:[^{<>]*},\s*(\d{4,}))?/);
-
   if (!match) {
     cause = 'setTimeout callback extraction failed';
-    return callback(new errors.ParserError(cause, options, response));
+    return callback(new ParserError(cause, options, response));
   }
 
   if (isNaN(timeout)) {
@@ -295,7 +302,7 @@ function solveChallenge (options, response, body) {
       }
     } else {
       cause = 'Failed to parse challenge timeout';
-      return callback(new errors.ParserError(cause, options, response));
+      return callback(new ParserError(cause, options, response));
     }
   }
 
@@ -303,16 +310,16 @@ function solveChallenge (options, response, body) {
   response.challenge = match[1] + '; a.value';
 
   try {
-    sandbox = createSandbox({ uri: uri, body: body });
-    payload.jschl_answer = vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
+    const ctx = new sandbox.Context({ hostname: uri.hostname, body });
+    payload.jschl_answer = sandbox.eval(response.challenge, ctx);
   } catch (error) {
     error.message = 'Challenge evaluation failed: ' + error.message;
-    return callback(new errors.ParserError(error, options, response));
+    return callback(new ParserError(error, options, response));
   }
 
   if (isNaN(payload.jschl_answer)) {
     cause = 'Challenge answer is not a number';
-    return callback(new errors.ParserError(cause, options, response));
+    return callback(new ParserError(cause, options, response));
   }
 
   // Prevent reusing the headers object to simplify unit testing.
@@ -326,43 +333,141 @@ function solveChallenge (options, response, body) {
   }
   // Set the query string and decrement the number of challenges to solve.
   options.qs = payload;
-  options.challengesToSolve = options.challengesToSolve - 1;
+  options.challengesToSolve -= 1;
 
   // Make request with answer after delay.
   timeout -= Date.now() - response.responseStartTime;
   setTimeout(performRequest, timeout, options, false);
 }
 
-function setCookieAndReload (options, response, body) {
+// Parses the reCAPTCHA form and hands control over to the user
+function onCaptcha (options, response, body) {
   const callback = options.callback;
+  // UDF that has the responsibility of returning control back to cloudscraper
+  const handler = options.onCaptcha;
+  // The form data to send back to Cloudflare
+  const payload = { /* s, g-re-captcha-response */ };
+
+  let cause;
+  let match;
+
+  match = body.match(/<form(?: [^<>]*)? id=["']?challenge-form['"]?(?: [^<>]*)?>([\S\s]*?)<\/form>/g);
+  if (!match) {
+    cause = 'Challenge form extraction failed';
+    return callback(new ParserError(cause, options, response));
+  }
+
+  // Defining response.challengeForm for debugging purposes
+  const form = response.challengeForm = match[1];
+
+  match = form.match(/\/recaptcha\/api\/fallback\?k=([^\s"'<>]*)/);
+  if (!match) {
+    // The site key wasn't inside the form so search the entire document
+    match = body.match(/data-sitekey=["']?([^\s"'<>]*)/);
+    if (!match) {
+      cause = 'Unable to find the reCAPTCHA site key';
+      return callback(new ParserError(cause, options, response));
+    }
+  }
+
+  // Everything that is needed to solve the reCAPTCHA
+  response.captcha = { siteKey: match[1], form: payload };
+
+  // Adding formData
+  match = form.match(/<input(?: [^<>]*)? name=[^<>]+(?:\/>|<\/input>)/g);
+  if (!match) {
+    cause = 'Challenge form is missing inputs';
+    return callback(new ParserError(cause, options, response));
+  }
+
+  const inputs = match;
+  // Only adding inputs that have both a name and value defined
+  for (let name, value, i = 0; i < inputs.length; i++) {
+    name = inputs[i].match(/name=["']?([^\s"'<>]*)/);
+    if (name) {
+      value = inputs[i].match(/value=["']?([^\s"'<>]*)/);
+      if (value) {
+        payload[name[0]] = value[0];
+      }
+    }
+  }
+
+  // Sanity check
+  if (!payload['s']) {
+    cause = 'Challenge form is missing secret input';
+    return callback(new ParserError(cause, options, response));
+  }
+
+  // The callback used to green light form submission
+  const submit = function (error) {
+    if (error) {
+      // Pass an user defined error back to the original request call
+      return callback(new CaptchaError(cause, options, response));
+    }
+
+    onSubmitCaptcha(options, response, body);
+  };
+
+  // This seems like an okay-ish API (fewer arguments to the handler)
+  response.captcha.submit = submit;
+
+  // We're handing control over to the user now.
+  const thenable = handler(options, response, body);
+  // Handle the case where the user returns a promise
+  if (thenable && typeof thenable.then === 'function') {
+    // eslint-disable-next-line promise/catch-or-return
+    thenable.then(submit);
+  }
+}
+
+function onSubmitCaptcha (options, response) {
+  const callback = options.callback;
+  const uri = response.request.uri;
+
+  if (!response.captcha.form['g-recaptcha-response']) {
+    const cause = 'Form submission without g-recaptcha-response';
+    return callback(new CaptchaError(cause, options, response));
+  }
+
+  options.method = 'GET';
+  options.qs = response.captcha.form;
+  // Use the original uri as the referer and to construct the form action.
+  options.headers['Referer'] = uri.href;
+  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+
+  performRequest(options, false);
+}
+
+function onRedirectChallenge (options, response, body) {
+  const callback = options.callback;
+  const uri = response.request.uri;
 
   const match = body.match(/S='([^']+)'/);
-
   if (!match) {
     const cause = 'Cookie code extraction failed';
-    return callback(new errors.ParserError(cause, options, response));
+    return callback(new ParserError(cause, options, response));
   }
 
   const base64EncodedCode = match[1];
   response.challenge = Buffer.from(base64EncodedCode, 'base64').toString('ascii');
 
   try {
-    const sandbox = createSandbox();
     // Evaluate cookie setting code
-    vm.runInNewContext(response.challenge, sandbox, VM_OPTIONS);
+    const ctx = new sandbox.Context();
+    sandbox.eval(response.challenge, ctx);
 
-    options.jar.setCookie(sandbox.document.cookie, response.request.uri.href, { ignoreError: true });
+    options.jar.setCookie(ctx.document.cookie, uri.href, { ignoreError: true });
   } catch (error) {
     error.message = 'Cookie code evaluation failed: ' + error.message;
-    return callback(new errors.ParserError(error, options, response));
+    return callback(new ParserError(error, options, response));
   }
 
-  options.challengesToSolve = options.challengesToSolve - 1;
+  options.challengesToSolve -= 1;
 
   performRequest(options, false);
 }
 
-function processResponseBody (options, response, body) {
+function onRequestComplete (options, response, body) {
   const callback = options.callback;
 
   if (typeof options.realEncoding === 'string') {
@@ -378,44 +483,4 @@ function processResponseBody (options, response, body) {
   }
 
   callback(null, response, body);
-}
-
-function createSandbox (options = {}) {
-  if (options.body) {
-    const body = options.body;
-    const href = 'http://' + options.uri.hostname + '/';
-    const cache = Object.create(null);
-    const keys = [];
-
-    // Sandbox for standard IUAM JS challenge
-    return Object.assign({
-      atob: function (str) {
-        return Buffer.from(str, 'base64').toString('binary');
-      },
-      document: {
-        createElement: function () {
-          return { firstChild: { href: href } };
-        },
-        getElementById: function (id) {
-          if (keys.indexOf(id) === -1) {
-            const re = new RegExp(' id=[\'"]?' + id + '[^>]*>([^<]*)');
-            const match = body.match(re);
-
-            keys.push(id);
-            cache[id] = match === null ? match : { innerHTML: match[1] };
-          }
-
-          return cache[id];
-        }
-      }
-    }, options.context);
-  }
-
-  // Sandbox used in setCookieAndReload
-  return Object.assign({
-    location: {
-      reload: function () {}
-    },
-    document: {}
-  }, options.context);
 }
