@@ -5,6 +5,7 @@ const requestModule = require('request-promise');
 const errors = require('./errors');
 const decodeEmails = require('./lib/email-decode.js');
 const getDefaultHeaders = require('./lib/headers');
+const brotli = require('./lib/brotli');
 
 const HOST = Symbol('host');
 
@@ -32,7 +33,9 @@ function defaults (params) {
     // Support only this max challenges in row. If CF returns more, throw an error
     challengesToSolve: 3,
     // Remove Cloudflare's email protection
-    decodeEmails: false
+    decodeEmails: false,
+    // Support gzip encoded responses
+    gzip: true
   };
 
   // Object.assign requires at least nodejs v4, request only test/supports v6+
@@ -147,6 +150,16 @@ function onRequestResponse (options, error, response, body) {
   // If body isn't a buffer, this is a custom response body.
   if (!Buffer.isBuffer(body)) {
     return callback(null, response, body);
+  }
+
+  // Decompress brotli compressed responses
+  if (/\bbr\b/i.test('' + response.caseless.get('content-encoding'))) {
+    if (!brotli.isAvailable) {
+      const cause = 'Received a Brotli compressed response. Please install brotli';
+      return callback(new errors.RequestError(cause, options, response));
+    }
+
+    response.body = body = brotli.decompress(body);
   }
 
   if (response.isCloudflare && response.isHTML) {
