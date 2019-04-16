@@ -278,6 +278,42 @@ describe('Cloudscraper', function () {
     expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
+  it('should resolve challenge (version as on 10.04.2019) and then return page', function (done) {
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_10_04_2019.html');
+      })
+      .get('/cdn-cgi/l/chk_jschl', function (req, res) {
+        res.send(requestedPage);
+      });
+
+    const expectedParams = helper.extendParams({
+      uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
+      qs: {
+        's': 'f3b4838af97b6cb02b3c8b1e0f149daf27dbee61-1555369946-1800-AakWW8TP/PRVIBQ2t2QmkJFEmb8TAmeIE7/GS7OUCF+d/7LncO0Zwye3YaCZyfhCfRyQogtebFuSWk2ANVV0pDSXqJ/q5qe0URcQQ2NNaGVMuPVrLh/OrUqD2QUPn0dWGA==',
+        'jschl_vc': '686d6bea02e6d172aa64f102a684228c',
+        'jschl_answer': String(9.8766929385 + helper.uri.hostname.length),
+        'pass': '1555369950.717-6S1r4kzOYK'
+      },
+      headers: {
+        'Referer': uri
+      },
+      challengesToSolve: 2
+    });
+
+    const promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
+
+      expect(body).to.be.equal(requestedPage);
+    });
+
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
+  });
+
   it('should resolve 2 consequent challenges', function (done) {
     // Cloudflare is enabled for site. It returns a page with JS challenge
     let additionalChallenge = true;
