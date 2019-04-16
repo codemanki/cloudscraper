@@ -9,7 +9,7 @@ const zlib   = require('zlib');
 const sinon  = require('sinon');
 const expect = require('chai').expect;
 
-(process.env.BROTLI ? describe : describe.skip)('Brotli', function () {
+(process.env.BROTLI ? describe : describe.skip)('Brotli (lib)', function () {
   it('should be available', function () {
     expect(brotli.isAvailable).to.be.true;
   });

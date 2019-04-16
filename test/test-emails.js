@@ -22,7 +22,7 @@ function genHTML (body) {
   '</html>\n';
 }
 
-describe('Cloudscraper', function () {
+describe('Email (lib)', function () {
   it('should not modify unprotected html', function () {
     const raw = genHTML('');
 

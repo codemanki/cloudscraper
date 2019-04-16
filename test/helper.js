@@ -90,6 +90,10 @@ express.response.sendChallenge = function (fileName) {
   return this.cloudflare().status(503).sendFixture(fileName);
 };
 
+express.response.sendCaptcha = function (fileName) {
+  return this.cloudflare().status(403).sendFixture(fileName);
+};
+
 express.response.endAbruptly = function () {
   this.connection.write(
     'HTTP/1.1 500\r\n' +

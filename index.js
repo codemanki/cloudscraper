@@ -374,7 +374,7 @@ function onCaptcha (options, response, body) {
   response.captcha = { siteKey: match[1], form: payload };
 
   // Adding formData
-  match = form.match(/<input(?: [^<>]*)? name=[^<>]+(?:\/>|<\/input>)/g);
+  match = form.match(/<input(?: [^<>]*)? name=[^<>]+>/g);
   if (!match) {
     cause = 'Challenge form is missing inputs';
     return callback(new ParserError(cause, options, response));
@@ -402,7 +402,7 @@ function onCaptcha (options, response, body) {
   const submit = function (error) {
     if (error) {
       // Pass an user defined error back to the original request call
-      return callback(new CaptchaError(cause, options, response));
+      return callback(new CaptchaError(error, options, response));
     }
 
     onSubmitCaptcha(options, response, body);
@@ -416,7 +416,14 @@ function onCaptcha (options, response, body) {
   // Handle the case where the user returns a promise
   if (thenable && typeof thenable.then === 'function') {
     // eslint-disable-next-line promise/catch-or-return
-    thenable.then(submit);
+    thenable.then(submit, function (error) {
+      if (!error) {
+        // The user broke their promise with a falsy error
+        submit(new Error('Falsy error'));
+      } else {
+        submit(error);
+      }
+    });
   }
 }
 
@@ -431,6 +438,8 @@ function onSubmitCaptcha (options, response) {
 
   options.method = 'GET';
   options.qs = response.captcha.form;
+  // Prevent reusing the headers object to simplify unit testing.
+  options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the form action.
   options.headers['Referer'] = uri.href;
   options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_captcha';
