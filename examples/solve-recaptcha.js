@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+function solveReCAPTCHA(url, sitekey, callback) {
+  //.. Here you do some magic with the sitekey provided by cloudscraper
+}
 function onCaptcha (options, response, body) {
   const captcha = response.captcha;
   // solveReCAPTCHA is a method that you should come up with and pass it href and sitekey, in return it will return you a reponse
