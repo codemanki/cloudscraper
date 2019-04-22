@@ -290,7 +290,7 @@ function onChallenge (options, response, body) {
   }
 
   if (isNaN(timeout)) {
-    if (match.length > 2) {
+    if (match[2] !== undefined) {
       timeout = parseInt(match[2]);
 
       if (timeout > options.cloudflareMaxTimeout) {
