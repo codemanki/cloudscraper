@@ -127,6 +127,10 @@ Cloudscraper wraps request and request-promise, so using cloudscraper is pretty 
     .catch(function (err) {
     });
   ```
+
+## Recaptcha
+Cloudscraper may help you with the recaptcha page. Take a look at [this example](https://github.com/codemanki/cloudscraper/blob/master/examples/solve-recaptcha.js).
+
 ## Defaults method
 
 `cloudscraper.defaults` is a very convenient way of extending the cloudscraper requests with any of your settings.
