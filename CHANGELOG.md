@@ -1,5 +1,11 @@
 ## Change Log
 
+### v4.0.0 (22/04/2019)
+- Randomize `User-Agent` header with random chrome browser
+- Recaptcha solving support
+- Brotli non-mandatory support
+- Various code changes and improvements
+
 ### v3.9.1 (11/04/2019)
 - Fix for the timeout parsing
 
@@ -11,7 +17,7 @@
 
 ### v3.7.0 (07/04/2019)
 - [#182](https://github.com/codemanki/cloudscraper/pull/182) Usage examples have been added.
-- [#169](https://github.com/codemanki/cloudscraper/pull/169) Cloudscraper now automatically parses out timeout for a CF challenge. `cloudflareTimeout` still can be used, but will be deprecated soon
+- [#169](https://github.com/codemanki/cloudscraper/pull/169) Cloudscraper now automatically parses out timeout for a CF challenge.
 
 ### v3.6.0 (03/04/2019)
 - [#180](https://github.com/codemanki/cloudscraper/pull/180) Update code to parse latest CF challenge

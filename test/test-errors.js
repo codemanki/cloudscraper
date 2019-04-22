@@ -2,19 +2,19 @@
 /* eslint-env node, mocha */
 'use strict';
 
-var cloudscraper = require('../index');
-var request      = require('request-promise');
-var helper       = require('./helper');
-var errors       = require('../errors');
+const cloudscraper = require('../index');
+const request      = require('request-promise');
+const helper       = require('./helper');
+const errors       = require('../errors');
 
-var sinon  = require('sinon');
-var expect = require('chai').expect;
-var assert = require('chai').assert;
+const sinon  = require('sinon');
+const expect = require('chai').expect;
+const assert = require('chai').assert;
 
 describe('Cloudscraper', function () {
-  var sandbox;
-  var Request;
-  var uri;
+  let sandbox;
+  let Request;
+  let uri;
 
   before(function (done) {
     helper.listen(function () {
@@ -46,7 +46,7 @@ describe('Cloudscraper', function () {
       res.endAbruptly();
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.RequestError);
       expect(error.error).to.be.an('error');
       expect(error).to.have.property('errorType', 0);
@@ -62,7 +62,7 @@ describe('Cloudscraper', function () {
       res.cloudflare().status(504).end();
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 1, means captcha is served
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 504);
@@ -82,7 +82,7 @@ describe('Cloudscraper', function () {
       res.sendChallenge('captcha.html');
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 1, means captcha is served
       expect(error).to.be.instanceOf(errors.CaptchaError);
       expect(error).to.have.property('error', 'captcha');
@@ -103,7 +103,7 @@ describe('Cloudscraper', function () {
       res.cloudflare().status(500).sendFixture('access_denied.html');
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 2, means inner cloudflare error
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 1006);
@@ -117,13 +117,13 @@ describe('Cloudscraper', function () {
   });
 
   it('should add a description to 5xx range cloudflare errors', function (done) {
-    var html = helper.getFixture('access_denied.html').toString('utf8');
+    const html = helper.getFixture('access_denied.html').toString('utf8');
 
     helper.router.get('/test', function (req, res) {
       res.cloudflare().status(504).send(html.replace('1006', '504'));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 2, means inner cloudflare error
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 504);
@@ -137,13 +137,13 @@ describe('Cloudscraper', function () {
   });
 
   it('should not error if error description is unavailable', function (done) {
-    var html = helper.getFixture('access_denied.html').toString('utf8');
+    const html = helper.getFixture('access_denied.html').toString('utf8');
 
     helper.router.get('/test', function (req, res) {
       res.cloudflare().status(500).send(html.replace('1006', '5111'));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 2, means inner cloudflare error
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 5111);
@@ -162,7 +162,7 @@ describe('Cloudscraper', function () {
     });
 
     // The expected params for all subsequent calls to Request
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl')
     });
 
@@ -172,7 +172,7 @@ describe('Cloudscraper', function () {
       qs: sinon.match.object
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.CloudflareError);
       expect(error).to.have.property('error', 'Cloudflare challenge loop');
       expect(error).to.have.property('errorType', 4);
@@ -180,7 +180,8 @@ describe('Cloudscraper', function () {
       assert.equal(Request.callCount, 4, 'Request call count');
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
 
-      var total = helper.defaultParams.challengesToSolve + 1;
+      const total = helper.defaultParams.challengesToSolve + 1;
+      // noinspection ES6ConvertVarToLetConst
       for (var i = 1; i < total; i++) {
         // Decrement the number of challengesToSolve to match actual params
         expectedParams.challengesToSolve -= 1;
@@ -196,10 +197,10 @@ describe('Cloudscraper', function () {
       res.status(503).end();
     });
 
-    var expectedParams = helper.extendParams({ json: true });
-    var options = { uri: uri, json: true };
+    const expectedParams = helper.extendParams({ json: true });
+    const options = { uri: uri, json: true };
 
-    var promise = cloudscraper.get(options, function (error) {
+    const promise = cloudscraper.get(options, function (error) {
       expect(error).to.be.instanceOf(errors.RequestError);
       expect(error).to.have.property('error', null);
       expect(error).to.have.property('errorType', 0);
@@ -218,7 +219,7 @@ describe('Cloudscraper', function () {
       res.sendChallenge('invalid_js_challenge.html');
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error').that.is.ok;
       expect(error).to.have.property('errorType', 3);
@@ -230,14 +231,14 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if js challenge has error during evaluation', function (done) {
-    var html = helper.getFixture('js_challenge_03_12_2018_1.html');
+    const html = helper.getFixture('js_challenge_03_12_2018_1.html');
 
     helper.router.get('/test', function (req, res) {
       // Adds a syntax error near the end of line 37
       res.cloudflare().status(503).send(html.replace(/\.toFixed/gm, '..toFixed'));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error').that.is.an('error');
       expect(error).to.have.property('errorType', 3);
@@ -250,13 +251,13 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if pass extraction fails', function (done) {
-    var html = helper.getFixture('js_challenge_03_12_2018_1.html');
+    const html = helper.getFixture('js_challenge_03_12_2018_1.html');
 
     helper.router.get('/test', function (req, res) {
       res.cloudflare().status(503).send(html.replace(/name="pass"/gm, ''));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'Attribute (pass) value extraction failed');
       expect(error).to.have.property('errorType', 3);
@@ -268,13 +269,13 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challengeId extraction fails', function (done) {
-    var html = helper.getFixture('js_challenge_03_12_2018_1.html');
+    const html = helper.getFixture('js_challenge_03_12_2018_1.html');
 
     helper.router.get('/test', function (req, res) {
       res.cloudflare().status(503).send(html.replace(/name="jschl_vc"/gm, ''));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'challengeId (jschl_vc) extraction failed');
       expect(error).to.have.property('errorType', 3);
@@ -286,14 +287,14 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challenge answer is not a number', function (done) {
-    var html = helper.getFixture('js_challenge_03_12_2018_1.html');
+    const html = helper.getFixture('js_challenge_03_12_2018_1.html');
 
     helper.router.get('/test', function (req, res) {
       res.cloudflare().status(503)
         .send(html.replace(/a.value.*/, 'a.value="abc" + t.length'));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'Challenge answer is not a number');
       expect(error).to.have.property('errorType', 3);
@@ -313,7 +314,7 @@ describe('Cloudscraper', function () {
         res.endAbruptly();
       });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 0, a connection error for example
       expect(error).to.be.instanceOf(errors.RequestError);
       expect(error.error).to.be.an('error');
@@ -336,7 +337,7 @@ describe('Cloudscraper', function () {
       });
 
     // Second call to request.get returns recaptcha
-    var expectedParams = helper.extendParams({
+    const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       challengesToSolve: 2
     });
@@ -347,7 +348,7 @@ describe('Cloudscraper', function () {
       qs: sinon.match.object
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       // errorType 1, means captcha is served
       expect(error).to.be.instanceOf(errors.CaptchaError);
       expect(error).to.have.property('error', 'captcha');
@@ -362,14 +363,14 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challenge page cookie extraction fails', function (done) {
-    var html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
+    const html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
 
     helper.router.get('/test', function (req, res) {
       // The cookie extraction codes looks for the `S` variable assignment
       res.cloudflare().status(503).send(html.replace(/S=/gm, 'Z='));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error', 'Cookie code extraction failed');
       expect(error).to.have.property('errorType', 3);
@@ -381,9 +382,9 @@ describe('Cloudscraper', function () {
   });
 
   it('should throw a TypeError if callback is not a function', function (done) {
-    var spy = sinon.spy(function () {
+    const spy = sinon.spy(function () {
       // request-promise always provides a callback so change requester
-      var options = { uri: uri, requester: require('request') };
+      const options = { uri: uri, requester: require('request') };
       cloudscraper.get(options);
     });
 
@@ -392,7 +393,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should throw a TypeError if requester is not a function', function (done) {
-    var spy = sinon.spy(function () {
+    const spy = sinon.spy(function () {
       cloudscraper.get({ requester: null });
     });
 
@@ -401,8 +402,8 @@ describe('Cloudscraper', function () {
   });
 
   it('should throw a TypeError if challengesToSolve is not a number', function (done) {
-    var spy = sinon.spy(function () {
-      var options = { uri: uri, challengesToSolve: 'abc' };
+    const spy = sinon.spy(function () {
+      const options = { uri: uri, challengesToSolve: 'abc' };
 
       cloudscraper.get(options);
     });
@@ -412,8 +413,8 @@ describe('Cloudscraper', function () {
   });
 
   it('should throw a TypeError if cloudflareMaxTimeout is not a number', function (done) {
-    var spy = sinon.spy(function () {
-      var options = { uri: uri, cloudflareMaxTimeout: 'abc' };
+    const spy = sinon.spy(function () {
+      const options = { uri: uri, cloudflareMaxTimeout: 'abc' };
 
       cloudscraper.get(options, function () {});
     });
@@ -424,14 +425,14 @@ describe('Cloudscraper', function () {
 
   it('should return error if cookie setting code evaluation fails', function (done) {
     // Change the cookie setting code so the vm will throw an error
-    var html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
-    var b64 = Buffer.from('throw new Error(\'vm eval failed\');').toString('base64');
+    const html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
+    const b64 = Buffer.from('throw new Error(\'vm eval failed\');').toString('base64');
 
     helper.router.get('/test', function (req, res) {
       res.cloudflare().status(503).send(html.replace(/S='([^']+)'/, 'S=\'' + b64 + '\''));
     });
 
-    var promise = cloudscraper.get(uri, function (error) {
+    const promise = cloudscraper.get(uri, function (error) {
       expect(error).to.be.instanceOf(errors.ParserError);
       expect(error).to.have.property('error').that.is.an('error');
       expect(error).to.have.property('errorType', 3);
@@ -444,14 +445,14 @@ describe('Cloudscraper', function () {
   });
 
   it('should not error if Error.captureStackTrace is undefined', function () {
-    var desc = Object.getOwnPropertyDescriptor(Error, 'captureStackTrace');
+    const desc = Object.getOwnPropertyDescriptor(Error, 'captureStackTrace');
 
     Object.defineProperty(Error, 'captureStackTrace', {
       configurable: true,
       value: undefined
     });
 
-    var spy = sinon.spy(function () {
+    const spy = sinon.spy(function () {
       throw new errors.RequestError();
     });
 

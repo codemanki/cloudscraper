@@ -127,6 +127,10 @@ Cloudscraper wraps request and request-promise, so using cloudscraper is pretty 
     .catch(function (err) {
     });
   ```
+
+## Recaptcha
+Cloudscraper may help you with the recaptcha page. Take a look at [this example](https://github.com/codemanki/cloudscraper/blob/master/examples/solve-recaptcha.js).
+
 ## Defaults method
 
 `cloudscraper.defaults` is a very convenient way of extending the cloudscraper requests with any of your settings.
@@ -151,12 +155,16 @@ var options = {
   jar: requestModule.jar(), // Custom cookie jar
   headers: {
     // User agent, Cache Control and Accept headers are required
+    // User agent is populated by a random UA.
     'User-Agent': 'Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36',
     'Cache-Control': 'private',
     'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5'
   },
-  // Cloudflare requires a delay of 4 seconds, so wait for at least 5.
+  // Cloudscraper automatically parses out timeout required by Cloudflare.
+  // Override cloudflareTimeout to adjust it.
   cloudflareTimeout: 5000,
+  // Reduce Cloudflare's timeout to cloudflareMaxTimeout if it is excessive
+  cloudflareMaxTimeout: 30000,
   // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
   followAllRedirects: true,
   // Support only this max challenges in row. If CF returns more, throw an error
@@ -225,5 +233,6 @@ Current Cloudflare implementation requires browser to respect the timeout of 5 s
 ## Dependencies
 * [request](https://github.com/request/request)
 * [request-promise](https://github.com/request/request-promise)
+
 
 

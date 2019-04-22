@@ -5,6 +5,9 @@ var url     = require('url');
 var path    = require('path');
 var express = require('express');
 
+// Clone the default headers for tests
+var defaultHeaders = Object.assign({}, require('../').defaultParams.headers);
+
 // Cache fixtures so they're only read from fs but once
 var cache = {};
 
@@ -19,13 +22,7 @@ var helper = {
       requester: sinon.match.func,
       jar: request.jar(),
       uri: helper.resolve('/test'),
-      headers: {
-        'Connection': 'keep-alive',
-        'User-Agent': sinon.match.string,
-        'Cache-Control': 'private',
-        'Accept': 'application/xml,application/xhtml+xml,text/html;q=0.9, text/plain;q=0.8,image/png,*/*;q=0.5',
-        'Accept-Language': 'en-US,en;q=0.9'
-      },
+      headers: Object.assign({}, defaultHeaders),
       method: 'GET',
       encoding: null,
       realEncoding: 'utf8',
@@ -33,7 +30,8 @@ var helper = {
       cloudflareTimeout: 1,
       cloudflareMaxTimeout: 30000,
       challengesToSolve: 3,
-      decodeEmails: false
+      decodeEmails: false,
+      gzip: true
     };
   },
   getFixture: function (fileName) {
@@ -90,6 +88,10 @@ express.response.sendFixture = function (fileName) {
 
 express.response.sendChallenge = function (fileName) {
   return this.cloudflare().status(503).sendFixture(fileName);
+};
+
+express.response.sendCaptcha = function (fileName) {
+  return this.cloudflare().status(403).sendFixture(fileName);
 };
 
 express.response.endAbruptly = function () {
