@@ -327,6 +327,10 @@ function onChallenge (options, response, body) {
   // Use the original uri as the referer and to construct the answer uri.
   options.headers['Referer'] = uri.href;
   options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+  // Add the fragment identifier if it's present
+  if (uri.hash) {
+    options.uri += uri.hash;
+  }
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
     options.baseUrl = undefined;
