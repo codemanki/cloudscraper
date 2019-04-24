@@ -102,6 +102,7 @@ describe('Cloudscraper', function () {
         });
 
         sinon.assert.match(response.captcha, {
+          url: uri,
           form: { s: secret },
           siteKey: siteKey,
           submit: sinon.match.func
