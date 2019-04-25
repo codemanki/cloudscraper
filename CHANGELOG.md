@@ -1,5 +1,10 @@
 ## Change Log
 
+### v4.0.1 (25/04/2019)
+- Improve documentation
+- Add `url` to captcha
+- Add more examples for reCAPTCHA handling
+
 ### v4.0.0 (22/04/2019)
 - Randomize `User-Agent` header with random chrome browser
 - Recaptcha solving support
