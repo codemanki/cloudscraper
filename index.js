@@ -371,7 +371,11 @@ function onCaptcha (options, response, body) {
   }
 
   // Everything that is needed to solve the reCAPTCHA
-  response.captcha = { siteKey: match[1], form: payload };
+  response.captcha = {
+    url: response.request.uri.href,
+    siteKey: match[1],
+    form: payload
+  };
 
   // Adding formData
   match = form.match(/<input(?: [^<>]*)? name=[^<>]+>/g);

@@ -19,71 +19,32 @@ You can use cloudscraper even if you are not sure if Cloudflare protection is tu
 In general, Cloudflare has 4 types of _common_ anti-bot pages:
   - Simple html+javascript page with challenge
   - Page which redirects to original site
-  - Page with recaptcha
+  - Page with reCAPTCHA
   - Page with error ( your ip was banned, etc)
 
-__Unfortunately, there is no support for handling a CAPTCHA, if the response contains it, but some convenience methods may be added in the future.__
-
-If you notice that for some reason cloudscraper stopped to work, do not hesitate and get in touch with me ( by creating an issue here, for example), so i can update it.
-
-Migration from v2 to v3
-============
-- Replace `cloudscraper.request(options)` with `cloudscraper(options)`
-- `cloudscraper.get()` and `cloudscraper.post()` method signatures are aligned with corresponding methods from [request](https://github.com/request/request#requestmethod):
-```
-var options = {
-  uri: 'https://website.com/',
-  headers: {/*...*/}
-};
-
-cloudscraper.get(options, function(error, response, body) {
-  console.log(body);
-});
-```
-or for **POST**
-```
-var options = {
-  uri: 'https://website.com/',
-  headers: {/*...*/},
-  formData: { field1: 'value', field2: 2 }
-};
-
-cloudscraper.post(options, function(error, response, body) {
-  console.log(body);
-});
-```
-- If you are using custom promise support workarounds please remove them as cloudscraper now uses [request-promise](https://github.com/request/request-promise):
-
-```
-var cloudscraper = require('cloudscraper');
-var options = {
-  uri: 'https://website.com/',
-  method: 'GET'
-};
-
-cloudscraper(options).then(function(body) {
-  console.log(body);
-});
-```
+If you notice that for some reason cloudscraper stops working, do not hesitate and get in touch with me ( by creating an issue [here](https://github.com/codemanki/cloudscraper/issues), for example), so i can update it.
 
 Install
 ============
-```javascript
+```sh
 npm install cloudscraper
+```
+
+Saving the `request` module as a dependency is compulsory.
+
+```sh
+# Pin the request version
+npm install --save request
 ```
 
 Usage
 ============
+Cloudscraper uses `request-promise` by default since v3. You can find the migration guide [here.](docs/migration-guide.md)
+
 ```javascript
 var cloudscraper = require('cloudscraper');
 
-cloudscraper.get('https://website.com/', function(error, response, body) {
-  if (error) {
-    console.log('Error occurred');
-  } else {
-    console.log(body, response);
-  }
-});
+cloudscraper.get('https://website.com/').then(console.log, console.error);
 ```
 
 or for `POST` action:
@@ -94,12 +55,12 @@ var options = {
   formData: { field1: 'value', field2: 2 }
 };
 
-cloudscraper.post(options, function(error, response, body) {
-  console.log(body);
-});
+cloudscraper.post(options).then(console.log).catch(console.error);
 ```
 
-A generic request can be made with `cloudscraper(options, callback)`. The options object should follow [request's options](https://www.npmjs.com/package/request#request-options-callback). Not everything is supported however, for example http methods other than GET and POST. If you wanted to request an image in binary data you could use the encoding option:
+*Examples live in the docs directory of the Github repo and can be found [here.](docs/examples)*
+
+A generic request can be made with `cloudscraper(options)`. The options object should follow [request's options](https://www.npmjs.com/package/request#request-options-callback). Not everything is supported however, for example http methods other than GET and POST. If you wanted to request an image in binary data you could use the encoding option:
 
 ```javascript
 var options = {
@@ -107,19 +68,17 @@ var options = {
   url:'http://website.com/',
 };
 
-cloudscraper(options, function(err, response, body) {
-  console.log(response)
-});
+cloudscraper(options).then(console.log);
 ```
 
 ## Advanced usage
-Cloudscraper wraps request and request-promise, so using cloudscraper is pretty much like using those two libraries.
- - Cloudscraper exposes [the same request methods as request](https://github.com/request/request#requestmethod):
- `cloudscraper.get(options, callback)`
- `cloudscraper.post(options, callback)`
- `cloudscraper(uri)`
- Please refer to request's documentation for further instructions
- - Cloudscraper uses request-promise, promise chaining is done exactly the same as described in [docs](https://github.com/request/request-promise#cheat-sheet):
+Cloudscraper allows you to specify your own requester, one of either `request` or `request-promise`.
+Cloudscraper wraps the requester and accepts the same options, so using cloudscraper is pretty much like using those two libraries.
+ - Cloudscraper exposes [the same HTTP verb methods as request](https://github.com/request/request#requestmethod):
+   * `cloudscraper.get(options, callback)`
+   * `cloudscraper.post(options, callback)`
+   * `cloudscraper(uri)`
+ - Cloudscraper uses request-promise by default, promise chaining is done exactly the same as described in [docs](https://github.com/request/request-promise#cheat-sheet):
  ```
   cloudscraper(options)
     .then(function (htmlString) {
@@ -127,29 +86,28 @@ Cloudscraper wraps request and request-promise, so using cloudscraper is pretty 
     .catch(function (err) {
     });
   ```
+Please refer to the requester's documentation for further instructions.
 
-## Recaptcha
-Cloudscraper may help you with the recaptcha page. Take a look at [this example](https://github.com/codemanki/cloudscraper/blob/master/examples/solve-recaptcha.js).
+## ReCAPTCHA
+Cloudscraper may help you with the reCAPTCHA page. Take a look at [this example](docs/examples/solve-recaptcha.js) and an [example using promises](docs/examples/solve-recaptcha-v2.js).
 
 ## Defaults method
 
 `cloudscraper.defaults` is a very convenient way of extending the cloudscraper requests with any of your settings.
 
-```
+```javascript
 var cloudscraper = require('cloudscraper').defaults({ 'proxy': 'http://localproxy.com' });
-// Override headers
+// Overriding headers to remove them or using uncommon headers will cause reCAPTCHA responses
 var headers = { /* ... */ };
 var cloudscraper = require('cloudscraper').defaults({ headers: headers });
 
-cloudscraper(options, function(error, response, body) {
-  console.log(body)
-});
+cloudscraper(options).then(console.log);
 ```
 
 ## Configuration
-Cloudscraper exposes following options that are required by default but might be changed. Please note that the default values increase chances of correct work.
+Cloudscraper exposes the following options that are required by default but might be changed. *Please note that the default values eliminate the chance of getting sent a CAPTCHA.*
 
-```
+```javascript
 var options = {
   uri: 'https://website',
   jar: requestModule.jar(), // Custom cookie jar
@@ -173,50 +131,50 @@ var options = {
   decodeEmails: false
 };
 
-cloudscraper(options, function(error, response, body) {
-  console.log(body)
-});
+cloudscraper(options).then(console.log);
 
 ```
-You can access default default configuration with `cloudscraper.defaultParams`
+You can access the default configuration with `cloudscraper.defaultParams`
 
 ## Error object
 Cloudscraper error object inherits from `Error` has following fields:
-  * `name` - `RequestError`/`CaptchaError`/`CloudflareError`/`ParserError`
+  * `name` - `RequestError`/`CAPTCHAError`/`CloudflareError`/`ParserError`
   * `options` - The request options
   * `cause` - An alias for `error`
   * `response` - The request response
   * `errorType` - Custom error code
 Where `errorType` can be following:
  - `0` if request to page failed due to some native reason as bad url, http connection or so. `error` in this case will be error [event](http://nodejs.org/api/http.html#http_class_http_server)
- - `1` Cloudflare returned captcha. Nothing to do here. Bad luck
+ - `1` Cloudflare returned CAPTCHA. Nothing to do here. Bad luck
  - `2` Cloudflare returned page with some inner error. `error` will be `Number` within this range `1012, 1011, 1002, 1000, 1004, 1010, 1006, 1007, 1008`. See more [here](https://support.cloudflare.com/hc/en-us/sections/200820298-Error-Pages)
  - `3` this error is returned when library failed to parse and solve js challenge. `error` will be `String` with some details. :warning: :warning: __Most likely it means that Cloudflare have changed their js challenge.__
  - `4` CF went into a loop and started to return challenge after challenge. If number of solved challenges is greater than `3` and another challenge is returned, throw an error
 
-Do not always rely on `error.cause` to be an error, it can be a string
+Errors are descriptive. You can find a list of all known errors [here.](errors.js)
+
+
+Do not always rely on `error.cause` to be an error, it can be a string.
 
 Running tests
 ============
 Clone this repo, do `npm install` and then just `npm test`
 
 ### Unknown error? Library stopped working? ###
-Let me know, by opening [issue](https://github.com/codemanki/cloudscraper/issues) in this repo and i will update library asap. Please, provide url and body of page where cloudscraper failed.
+Let me know, by opening an [issue](https://github.com/codemanki/cloudscraper/issues) in this repo and I will update library asap. Please, provide url and body of page where cloudscraper failed.
 
 WAT
 ===========
 Current Cloudflare implementation requires browser to respect the timeout of 5 seconds and cloudscraper mimics this behaviour. So everytime you call `cloudscraper.get/post` you should expect it to return result after minimum 6 seconds. If you want to change this behaviour, you would need to make a generic request as described in above and pass `cloudflareTimeout` options with your value. But be aware that Cloudflare might track this timeout and use it against you ;)
 
 ## TODO
- - [x] Check for recaptcha
+ - [x] Check for reCAPTCHA
  - [x] Support cookies, so challenge can be solved once per session
  - [x] Support page with simple redirects
  - [x] Add proper testing
  - [x] Remove manual 302 processing, replace with `followAllRedirects` param
- - [ ] Parse out the timeout from challenge page
- - [x] Reoder the arguments in get/post/request methods and allow custom options to be passed in
- - [ ] Expose solve methods to use them independently
- - [ ] Support recaptcha solving
+ - [x] Parse out the timeout from challenge page
+ - [x] Reorder the arguments in get/post/request methods and allow custom options to be passed in
+ - [x] Support reCAPTCHA solving
  - [x] Promisification
 
 ## Kudos to contributors
@@ -231,7 +189,6 @@ Current Cloudflare implementation requires browser to respect the timeout of 5 s
  - In the beginning cloudscraper was a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape). Thank you [Anorov](https://github.com/Anorov) for an inspiration.
 
 ## Dependencies
-* [request](https://github.com/request/request)
 * [request-promise](https://github.com/request/request-promise)
 
 
