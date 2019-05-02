@@ -7,6 +7,7 @@ var express = require('express');
 
 // Clone the default headers for tests
 var defaultHeaders = Object.assign({}, require('../').defaultParams.headers);
+var agentOptions = require('../lib/agent-options');
 
 // Cache fixtures so they're only read from fs but once
 var cache = {};
@@ -31,7 +32,8 @@ var helper = {
       cloudflareMaxTimeout: 30000,
       challengesToSolve: 3,
       decodeEmails: false,
-      gzip: true
+      gzip: true,
+      agentOptions
     };
   },
   getFixture: function (fileName) {
