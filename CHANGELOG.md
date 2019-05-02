@@ -1,5 +1,8 @@
 ## Change Log
 
+### v4.1.0 (02/05/2019)
+- Backport TLSv1.3 secure ciphers to potentially avoid getting a CAPTCHA.
+
 ### v4.0.1 (25/04/2019)
 - Improve documentation
 - Add `url` to captcha
