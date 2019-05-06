@@ -4,15 +4,15 @@ language: node_js
 
 node_js:
   - node
+  - 11
   - 10
   - 8
-  - 6
 
 matrix:
   include:
     - node_js: node
       env: BROTLI=1
-    - node_js: 6
+    - node_js: 8
       env: BROTLI=1
       before_install: npm i --save-only request brotli
 
