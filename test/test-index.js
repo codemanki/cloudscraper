@@ -645,8 +645,8 @@ describe('Cloudscraper', function () {
       expect(Request.firstCall).to.be.calledWithExactly(expectedParams);
 
       const elapsed = Date.now() - start;
-      // Aiming to be within ~150ms of specified timeout
-      expect(elapsed >= 50 && elapsed <= 200).to.be.ok;
+      // Aiming to be within ~450ms of specified timeout
+      expect(elapsed >= 50 && elapsed <= 500).to.be.ok;
     });
 
     expect(promise).to.eventually.equal(requestedPage).and.notify(done);
