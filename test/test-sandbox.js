@@ -34,11 +34,6 @@ describe('Sandbox (lib)', function () {
   it('Context() should define location.reload', function () {
     const ctx = new sandbox.Context();
 
-    expect(ctx.location).to.be.an('object');
-    expect(ctx.location.reload).to.be.an('function');
-
-    // This is a noop
-    ctx.location.reload();
     expect(sandbox.eval('location.reload()', ctx)).to.equal(void 0);
   });
 
@@ -46,62 +41,46 @@ describe('Sandbox (lib)', function () {
     let ctx = new sandbox.Context();
     let pseudoElement = { firstChild: { href: 'http:///' } };
 
-    expect(ctx.document).to.be.an('object');
-
-    expect(ctx.document.createElement).to.be.an('function');
-    expect(ctx.document.createElement('a')).eql(pseudoElement);
     expect(sandbox.eval('document.createElement("a")', ctx)).to.eql(pseudoElement);
 
     ctx = new sandbox.Context({ hostname: 'test.com' });
     pseudoElement = { firstChild: { href: 'http://test.com/' } };
 
-    expect(ctx.document.createElement('a')).eql(pseudoElement);
     expect(sandbox.eval('document.createElement("a")', ctx)).to.eql(pseudoElement);
   });
 
   it('Context() should define document.geElementById', function () {
     let ctx = new sandbox.Context();
-
-    expect(ctx.document).to.be.an('object');
-
-    expect(ctx.document.getElementById).to.be.an('function');
-    expect(ctx.document.getElementById()).to.be.null;
     expect(sandbox.eval('document.getElementById()', ctx)).to.be.null;
-    expect(ctx.document.getElementById('foobar')).to.be.null;
+
+    // Missing element
+    ctx = new sandbox.Context();
     expect(sandbox.eval('document.getElementById("foobar")', ctx)).to.be.null;
 
     // Double quotes
     ctx = new sandbox.Context({ body: '<div id="test">foobar</div>' });
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: 'foobar' });
     expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: 'foobar' });
 
     // Single quotes
     ctx = new sandbox.Context({ body: '<div id=\'test\'>foobar</div>' });
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: 'foobar' });
     expect(sandbox.eval('document.getElementById(\'test\')', ctx)).eql({ innerHTML: 'foobar' });
 
     // Empty
     ctx = new sandbox.Context({ body: '<div id="test"></div>' });
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: '' });
     expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: '' });
 
     // Space agnostic tests
     ctx = new sandbox.Context({ body: '<div id="test">\nabc\n\n</div>' });
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: '\nabc\n\n' });
     expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: '\nabc\n\n' });
 
     ctx = new sandbox.Context({ body: '<div     id=\'test\'       > abc  </div>' });
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: ' abc  ' });
     expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: ' abc  ' });
 
     ctx = new sandbox.Context({ body: 'foo="bar"  id=\'test\'  a=b  > abc  <' });
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: ' abc  ' });
     expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: ' abc  ' });
 
     // Cache test
     ctx = new sandbox.Context({ body: '<div id="test">foobar</div>' });
-    ctx.document.getElementById('test').innerHTML = 'foo';
-    expect(ctx.document.getElementById('test')).eql({ innerHTML: 'foo' });
-    expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: 'foo' });
+    expect(sandbox.eval('document.getElementById("test")', ctx)).eql({ innerHTML: 'foobar' });
   });
 });
