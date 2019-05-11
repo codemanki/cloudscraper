@@ -1,4 +1,6 @@
 ## Change Log
+### 4.1.1 (11/05/2019)
+- Improve CF challenge security by nullifying VM context's prototype chain.
 
 ### v4.1.0 (02/05/2019)
 - Backport TLSv1.3 secure ciphers to potentially avoid getting a CAPTCHA.
