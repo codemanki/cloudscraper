@@ -4,8 +4,8 @@ const requestModule = require('request-promise');
 const sandbox = require('./lib/sandbox');
 const decodeEmails = require('./lib/email-decode.js');
 const getDefaultHeaders = require('./lib/headers');
-const agentOptions = require('./lib/agent-options');
 const brotli = require('./lib/brotli');
+const crypto = require('crypto');
 
 const {
   RequestError,
@@ -37,8 +37,10 @@ function defaults (params) {
     decodeEmails: false,
     // Support gzip encoded responses
     gzip: true,
-    // Adds secure TLSv1.3 ciphers when using older openssl versions
-    agentOptions
+    agentOptions: {
+      // Removes a few problematic TLSv1.0 ciphers to avoid CAPTCHA
+      ciphers: crypto.constants.defaultCipherList + ':!ECDHE+SHA:!AES128-SHA'
+    }
   };
 
   // Object.assign requires at least nodejs v4, request only test/supports v6+

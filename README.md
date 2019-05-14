@@ -37,6 +37,10 @@ Saving the `request` module as a dependency is compulsory.
 npm install --save request
 ```
 
+Support for Brotli encoded responses is enabled by default when using Node.js v10 or later.
+If you wish to enable support for older Node.js versions, you may install [brotli](https://npmjs.com/package/brotli).
+It is recommended but not required.
+
 Usage
 ============
 Cloudscraper uses `request-promise` by default since v3. You can find the migration guide [here.](docs/migration-guide.md)
@@ -128,7 +132,11 @@ var options = {
   // Support only this max challenges in row. If CF returns more, throw an error
   challengesToSolve: 3,
   // Remove Cloudflare's email protection, replace encoded email with decoded versions
-  decodeEmails: false
+  decodeEmails: false,
+  // Support gzip encoded responses (Should be enabled unless using custom headers)
+  gzip: true,
+  // Removes a few problematic TLSv1.0 ciphers to avoid CAPTCHA
+  agentOptions: { ciphers }
 };
 
 cloudscraper(options).then(console.log);
