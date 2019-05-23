@@ -5,9 +5,10 @@ var url     = require('url');
 var path    = require('path');
 var express = require('express');
 
-// Clone the default headers for tests
-var defaultHeaders = Object.assign({}, require('../').defaultParams.headers);
-var agentOptions = require('../lib/agent-options');
+// Clone a few defaults before testing
+var opts = require('../').defaultParams;
+var defaultHeaders = Object.assign({}, opts.headers);
+var agentOptions = Object.assign({}, opts.agentOptions);
 
 // Cache fixtures so they're only read from fs but once
 var cache = {};
@@ -33,7 +34,7 @@ var helper = {
       challengesToSolve: 3,
       decodeEmails: false,
       gzip: true,
-      agentOptions
+      agentOptions: Object.assign({}, agentOptions)
     };
   },
   getFixture: function (fileName) {
