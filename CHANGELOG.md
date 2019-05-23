@@ -1,4 +1,8 @@
 ## Change Log
+
+### 4.1.2 (23/05/2019)
+- [#219](https://github.com/codemanki/cloudscraper/pull/219) Remove a few problematic TLSv1.0 ciphers.
+
 ### 4.1.1 (11/05/2019)
 - Improve CF challenge security by nullifying VM context's prototype chain.
 
