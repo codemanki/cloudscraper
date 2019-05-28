@@ -41,7 +41,9 @@ const ERROR_CODES = {
   '1011': 'Access Denied (Hotlinking Denied)',
   '1012': 'Access Denied',
   '1013': 'HTTP hostname and TLS SNI hostname mismatch',
-  '1016': 'Origin DNS error'
+  '1016': 'Origin DNS error',
+  '1018': 'Domain is misconfigured',
+  '1020': 'Access Denied (Custom Firewall Rules)'
 };
 
 ERROR_CODES[1006] =
