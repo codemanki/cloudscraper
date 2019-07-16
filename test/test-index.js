@@ -141,13 +141,13 @@ describe('Cloudscraper', function () {
     const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        'jschl_vc': '89cdff5eaa25923e0f26e29e5195dce9',
+        jschl_vc: '89cdff5eaa25923e0f26e29e5195dce9',
         // 633 is a answer to cloudflare's JS challenge in this particular case
-        'jschl_answer': 633 + helper.uri.hostname.length,
-        'pass': '1432194174.495-8TSfc235EQ'
+        jschl_answer: 633 + helper.uri.hostname.length,
+        pass: '1432194174.495-8TSfc235EQ'
       },
       headers: {
-        'Referer': uri
+        Referer: uri
       },
       challengesToSolve: 2
     });
@@ -179,13 +179,13 @@ describe('Cloudscraper', function () {
     const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        'jschl_vc': '346b959db0cfa38f9938acc11d6e1e6e',
+        jschl_vc: '346b959db0cfa38f9938acc11d6e1e6e',
         // 6632 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': 6632 + helper.uri.hostname.length,
-        'pass': '1465488330.6-N/NbGTg+IM'
+        jschl_answer: 6632 + helper.uri.hostname.length,
+        pass: '1465488330.6-N/NbGTg+IM'
       },
       headers: {
-        'Referer': uri
+        Referer: uri
       },
       challengesToSolve: 2
     });
@@ -217,13 +217,13 @@ describe('Cloudscraper', function () {
     const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        'jschl_vc': '18e0eb4e7cc844880cd9822df9d8546e',
+        jschl_vc: '18e0eb4e7cc844880cd9822df9d8546e',
         // 6632 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': (22.587957833300003 + helper.uri.hostname.length).toFixed(10),
-        'pass': '1552499230.142-MOc6blXorq'
+        jschl_answer: (22.587957833300003 + helper.uri.hostname.length).toFixed(10),
+        pass: '1552499230.142-MOc6blXorq'
       },
       headers: {
-        'Referer': uri
+        Referer: uri
       },
       challengesToSolve: 2
     });
@@ -254,13 +254,13 @@ describe('Cloudscraper', function () {
     const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        's': '08ee9f79382c9f784ef868f239a0984261a28b2f-1553213547-1800-AXjMT2d0Sx0fifn2gHCBp7sjO3hmbH5Pab9lPE92HxBLetotfG2HQ0U8ioQ2CJwOMGV5pmmBmffUDmmyxIyCuRCBOxecZXzYCBZZReVFCTXgIlpXL8ZcztRhE9Bm3BNGfg==',
-        'jschl_vc': '56dea7618ea1879d5c357e2f36d8cc73',
-        'jschl_answer': String(4.0802397597999995 + helper.uri.hostname.length),
-        'pass': '1553213551.122-8cmVkvFy7Q'
+        s: '08ee9f79382c9f784ef868f239a0984261a28b2f-1553213547-1800-AXjMT2d0Sx0fifn2gHCBp7sjO3hmbH5Pab9lPE92HxBLetotfG2HQ0U8ioQ2CJwOMGV5pmmBmffUDmmyxIyCuRCBOxecZXzYCBZZReVFCTXgIlpXL8ZcztRhE9Bm3BNGfg==',
+        jschl_vc: '56dea7618ea1879d5c357e2f36d8cc73',
+        jschl_answer: String(4.0802397597999995 + helper.uri.hostname.length),
+        pass: '1553213551.122-8cmVkvFy7Q'
       },
       headers: {
-        'Referer': uri
+        Referer: uri
       },
       challengesToSolve: 2
     });
@@ -290,13 +290,13 @@ describe('Cloudscraper', function () {
     const expectedParams = helper.extendParams({
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        's': 'f3b4838af97b6cb02b3c8b1e0f149daf27dbee61-1555369946-1800-AakWW8TP/PRVIBQ2t2QmkJFEmb8TAmeIE7/GS7OUCF+d/7LncO0Zwye3YaCZyfhCfRyQogtebFuSWk2ANVV0pDSXqJ/q5qe0URcQQ2NNaGVMuPVrLh/OrUqD2QUPn0dWGA==',
-        'jschl_vc': '686d6bea02e6d172aa64f102a684228c',
-        'jschl_answer': String(9.8766929385 + helper.uri.hostname.length),
-        'pass': '1555369950.717-6S1r4kzOYK'
+        s: 'f3b4838af97b6cb02b3c8b1e0f149daf27dbee61-1555369946-1800-AakWW8TP/PRVIBQ2t2QmkJFEmb8TAmeIE7/GS7OUCF+d/7LncO0Zwye3YaCZyfhCfRyQogtebFuSWk2ANVV0pDSXqJ/q5qe0URcQQ2NNaGVMuPVrLh/OrUqD2QUPn0dWGA==',
+        jschl_vc: '686d6bea02e6d172aa64f102a684228c',
+        jschl_answer: String(9.8766929385 + helper.uri.hostname.length),
+        pass: '1555369950.717-6S1r4kzOYK'
       },
       headers: {
-        'Referer': uri
+        Referer: uri
       },
       challengesToSolve: 2
     });
@@ -337,13 +337,13 @@ describe('Cloudscraper', function () {
       resolveWithFullResponse: true,
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
-        'pass': '1543827239.915-44n9IE20mS',
+        jschl_vc: '427c2b1cd4fba29608ee81b200e94bfa',
+        pass: '1543827239.915-44n9IE20mS',
         // -5.33265406 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': -5.33265406 + helper.uri.hostname.length
+        jschl_answer: -5.33265406 + helper.uri.hostname.length
       },
       headers: {
-        'Referer': uri
+        Referer: uri
       },
       challengesToSolve: 2
     });
@@ -352,13 +352,13 @@ describe('Cloudscraper', function () {
       resolveWithFullResponse: true,
       uri: helper.resolve('/cdn-cgi/l/chk_jschl'),
       qs: {
-        'jschl_vc': 'a41fee3a9f041fea01f0cbf3e8e4d29b',
-        'pass': '1543827246.024-hvxyNA3rOg',
+        jschl_vc: 'a41fee3a9f041fea01f0cbf3e8e4d29b',
+        pass: '1543827246.024-hvxyNA3rOg',
         // 1.9145049856 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': -1.9145049856 + helper.uri.hostname.length
+        jschl_answer: -1.9145049856 + helper.uri.hostname.length
       },
       headers: {
-        'Referer': helper.resolve('/cdn-cgi/l/chk_jschl?' +
+        Referer: helper.resolve('/cdn-cgi/l/chk_jschl?' +
           querystring.stringify(secondParams.qs))
       },
       challengesToSolve: 1
@@ -488,13 +488,13 @@ describe('Cloudscraper', function () {
       proxy: helper.uri.href,
       uri: 'http://example-site.dev/cdn-cgi/l/chk_jschl',
       qs: {
-        'jschl_vc': '427c2b1cd4fba29608ee81b200e94bfa',
+        jschl_vc: '427c2b1cd4fba29608ee81b200e94bfa',
         // -5.33265406 is a answer to Cloudflare's JS challenge in this particular case
-        'jschl_answer': -5.33265406 + 'example-site.dev'.length,
-        'pass': '1543827239.915-44n9IE20mS'
+        jschl_answer: -5.33265406 + 'example-site.dev'.length,
+        pass: '1543827239.915-44n9IE20mS'
       },
       headers: {
-        'Referer': 'http://example-site.dev/test'
+        Referer: 'http://example-site.dev/test'
       },
       challengesToSolve: 2
     });

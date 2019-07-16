@@ -24,7 +24,7 @@ class Request extends EventEmitter {
 
     // The actual request should be performed at this point.
     // Pseudo error event
-    let error = null;
+    const error = null;
     if (error) {
       self.emit('error', new Error('Request error'));
     }

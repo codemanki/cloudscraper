@@ -26,7 +26,7 @@ function defaults (params) {
     requester: requestModule,
     // Cookies should be enabled
     jar: requestModule.jar(),
-    headers: getDefaultHeaders({ 'Host': HOST }),
+    headers: getDefaultHeaders({ Host: HOST }),
     // Reduce Cloudflare's timeout to cloudflareMaxTimeout if it is excessive
     cloudflareMaxTimeout: 30000,
     // followAllRedirects - follow non-GET HTTP 3xx responses as redirects
@@ -182,16 +182,12 @@ function onRequestResponse (options, error, response, body) {
 function onCloudflareResponse (options, response, body) {
   const callback = options.callback;
 
-  let stringBody;
-  let isChallenge;
-  let isRedirectChallenge;
-
   if (body.length < 1) {
     // This is a 4xx-5xx Cloudflare response with an empty body.
     return callback(new CloudflareError(response.statusCode, options, response));
   }
 
-  stringBody = body.toString('utf8');
+  const stringBody = body.toString('utf8');
 
   try {
     validate(options, response, stringBody);
@@ -204,13 +200,13 @@ function onCloudflareResponse (options, response, body) {
     return callback(error);
   }
 
-  isChallenge = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
+  const isChallenge = stringBody.indexOf('a = document.getElementById(\'jschl-answer\');') !== -1;
 
   if (isChallenge) {
     return onChallenge(options, response, stringBody);
   }
 
-  isRedirectChallenge = stringBody.indexOf('You are being redirected') !== -1 ||
+  const isRedirectChallenge = stringBody.indexOf('You are being redirected') !== -1 ||
     stringBody.indexOf('sucuri_cloudproxy_js') !== -1;
 
   if (isRedirectChallenge) {
@@ -227,8 +223,6 @@ function onCloudflareResponse (options, response, body) {
 }
 
 function validate (options, response, body) {
-  let match;
-
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
     // Convenience boolean
@@ -237,10 +231,10 @@ function validate (options, response, body) {
   }
 
   // Trying to find '<span class="cf-error-code">1006</span>'
-  match = body.match(/<\w+\s+class="cf-error-code">(.*)<\/\w+>/i);
+  const match = body.match(/<\w+\s+class="cf-error-code">(.*)<\/\w+>/i);
 
   if (match) {
-    let code = parseInt(match[1]);
+    const code = parseInt(match[1]);
     throw new CloudflareError(code, options, response);
   }
 
