@@ -39,7 +39,7 @@ function defaults (params) {
     gzip: true,
     agentOptions: {
       // Removes a few problematic TLSv1.0 ciphers to avoid CAPTCHA
-      ciphers: crypto.constants.defaultCipherList + ':!ECDHE+SHA:!AES128-SHA'
+      ciphers: crypto.constants.defaultCipherList + ':!ECDHE+SHA:!AES128-SHA:!AESCCM:!DHE:!ARIA'
     }
   };
 
