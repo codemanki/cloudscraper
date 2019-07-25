@@ -95,6 +95,19 @@ Please refer to the requester's documentation for further instructions.
 ## ReCAPTCHA
 Cloudscraper may help you with the reCAPTCHA page. Take a look at [this example](docs/examples/solve-recaptcha.js) and an [example using promises](docs/examples/solve-recaptcha-v2.js).
 
+Cloudflare may send a reCAPTCHA based on the negotiated TLS cipher suite and extensions. Reducing the default cipher suite to only ciphers supported by Cloudflare may mitigate the problem: https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites
+
+Only specifying the Cloudflare preferred TLSv1.2 cipher is also an option:
+```javascript
+var cloudscraper = require('cloudscraper').defaults({
+  agentOptions: {
+    ciphers: 'ECDHE-ECDSA-AES128-GCM-SHA256'
+  }
+})
+```
+
+More information on TLS issues can be found [here](https://github.com/codemanki/cloudscraper/issues?utf8=%E2%9C%93&q=tls).
+
 ## Defaults method
 
 `cloudscraper.defaults` is a very convenient way of extending the cloudscraper requests with any of your settings.
@@ -146,7 +159,7 @@ You can access the default configuration with `cloudscraper.defaultParams`
 
 ## Error object
 Cloudscraper error object inherits from `Error` has following fields:
-  * `name` - `RequestError`/`CAPTCHAError`/`CloudflareError`/`ParserError`
+  * `name` - `RequestError`/`CaptchaError`/`CloudflareError`/`ParserError`
   * `options` - The request options
   * `cause` - An alias for `error`
   * `response` - The request response
@@ -194,10 +207,9 @@ Current Cloudflare implementation requires browser to respect the timeout of 5 s
  - [Leonardo Gatica](https://github.com/lgaticaq)
  - [Michael](https://github.com/roflmuffin)
  - [Kamikadze4GAME](https://github.com/Kamikadze4GAME)
- - In the beginning cloudscraper was a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape). Thank you [Anorov](https://github.com/Anorov) for an inspiration.
+ - [Anorov](https://github.com/Anorov) :star:
+
+In the beginning cloudscraper was a port of python module [cloudflare-scrape](https://github.com/Anorov/cloudflare-scrape). Thank you [Anorov](https://github.com/Anorov) for an inspiration.
 
 ## Dependencies
 * [request-promise](https://github.com/request/request-promise)
-
-
-
