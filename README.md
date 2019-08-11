@@ -95,7 +95,7 @@ Please refer to the requester's documentation for further instructions.
 ## ReCAPTCHA
 Cloudscraper may help you with the reCAPTCHA page. Take a look at [this example](docs/examples/solve-recaptcha.js) and an [example using promises](docs/examples/solve-recaptcha-v2.js).
 
-Cloudflare may send a reCAPTCHA based on the negotiated TLS cipher suite and extensions. Reducing the default cipher suite to only ciphers supported by Cloudflare may mitigate the problem: https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites
+Cloudflare may send a reCAPTCHA depending on the negotiated TLS cipher suite and extensions. Reducing the default cipher suite to only ciphers supported by Cloudflare may mitigate the problem: https://developers.cloudflare.com/ssl/ssl-tls/cipher-suites/
 
 Only specifying the Cloudflare preferred TLSv1.2 cipher is also an option:
 ```javascript
