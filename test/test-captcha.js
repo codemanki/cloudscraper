@@ -61,9 +61,8 @@ describe('Cloudscraper', function () {
       expect(error.error).to.be.an('error');
       expect(error).to.have.property('errorType', 1);
       expect(error.message).to.include('Falsy error');
+      expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
   });
 
   for (let stage = 0; stage < 4; stage++) {
@@ -158,6 +157,7 @@ describe('Cloudscraper', function () {
             expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
             expect(body).to.be.equal(requestedPage);
+            expect(promise).to.eventually.equal(requestedPage).and.notify(done);
             break;
           case 1:
           case 3:
@@ -165,20 +165,10 @@ describe('Cloudscraper', function () {
             expect(error.error).to.be.an('error');
             expect(error).to.have.property('errorType', 1);
             expect(error.message).to.include(expectedError.message);
+            expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
             break;
         }
       });
-
-      switch (stage) {
-        case 0:
-        case 2:
-          expect(promise).to.eventually.equal(requestedPage).and.notify(done);
-          break;
-        case 1:
-        case 3:
-          expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
-          break;
-      }
     });
   }
 });

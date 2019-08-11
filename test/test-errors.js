@@ -52,9 +52,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 0);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
   it('should return error if cloudflare response is empty', function (done) {
@@ -72,9 +71,8 @@ describe('Cloudscraper', function () {
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
 
       expect(error.response.body).to.be.eql(Buffer.alloc(0));
+      expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
   it('should return error if captcha is served by cloudflare', function (done) {
@@ -89,9 +87,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 1);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
   });
 
   it('should return error if cloudflare returned some inner error', function (done) {
@@ -111,9 +108,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 2);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
   it('should add a description to 5xx range cloudflare errors', function (done) {
@@ -131,9 +127,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 2);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
   it('should not error if error description is unavailable', function (done) {
@@ -151,9 +146,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 2);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
   });
 
   it('should return error if cf presented more than 3 challenges in a row', function (done) {
@@ -187,9 +181,9 @@ describe('Cloudscraper', function () {
         expectedParams.challengesToSolve -= 1;
         expect(Request.getCall(i)).to.be.calledWithExactly(expectedParams);
       }
-    });
 
-    expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
+      expect(promise).to.be.rejectedWith(errors.CloudflareError).and.notify(done);
+    });
   });
 
   it('should return error if body is undefined', function (done) {
@@ -209,9 +203,8 @@ describe('Cloudscraper', function () {
 
       expect(error.response.body).to.be.equal(undefined);
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
+      expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
   it('should return error if challenge page failed to be parsed', function (done) {
@@ -225,9 +218,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should return error if js challenge has error during evaluation', function (done) {
@@ -245,9 +237,8 @@ describe('Cloudscraper', function () {
       expect(error.message).to.include('Challenge evaluation failed');
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should return error if pass extraction fails', function (done) {
@@ -263,9 +254,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should return error if challengeId extraction fails', function (done) {
@@ -281,9 +271,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should return error if challenge answer is not a number', function (done) {
@@ -300,9 +289,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should return error if it was thrown by request when solving challenge', function (done) {
@@ -322,9 +310,8 @@ describe('Cloudscraper', function () {
 
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
   });
 
   it('should properly handle a case when after a challenge another one is returned', function (done) {
@@ -357,9 +344,8 @@ describe('Cloudscraper', function () {
       expect(Request).to.be.calledTwice;
       expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
+      expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.CaptchaError).and.notify(done);
   });
 
   it('should return error if challenge page cookie extraction fails', function (done) {
@@ -376,9 +362,8 @@ describe('Cloudscraper', function () {
       expect(error).to.have.property('errorType', 3);
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should throw a TypeError if callback is not a function', function (done) {
@@ -439,9 +424,8 @@ describe('Cloudscraper', function () {
       expect(error.message).to.include('vm eval failed');
 
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
+      expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
     });
-
-    expect(promise).to.be.rejectedWith(errors.ParserError).and.notify(done);
   });
 
   it('should not error if Error.captureStackTrace is undefined', function () {
