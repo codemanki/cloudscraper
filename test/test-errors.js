@@ -363,7 +363,7 @@ describe('Cloudscraper', function () {
   });
 
   it('should return error if challenge page cookie extraction fails', function (done) {
-    const html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
+    const html = helper.getFixture('sucuri_waf_18_08_2016.html').toString('utf8');
 
     helper.router.get('/test', function (req, res) {
       // The cookie extraction codes looks for the `S` variable assignment
@@ -425,7 +425,7 @@ describe('Cloudscraper', function () {
 
   it('should return error if cookie setting code evaluation fails', function (done) {
     // Change the cookie setting code so the vm will throw an error
-    const html = helper.getFixture('js_challenge_cookie.html').toString('utf8');
+    const html = helper.getFixture('sucuri_waf_18_08_2016.html').toString('utf8');
     const b64 = Buffer.from('throw new Error(\'vm eval failed\');').toString('base64');
 
     helper.router.get('/test', function (req, res) {

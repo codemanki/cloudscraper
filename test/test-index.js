@@ -438,13 +438,41 @@ describe('Cloudscraper', function () {
     expect(promise).to.eventually.eql(expectedBody).and.notify(done);
   });
 
-  it('should set the given cookie and then return page', function (done) {
+  it('should resolve sucuri WAF (version as on 18.08.2016) and then return page', function (done) {
     helper.router.get('/test', function (req, res) {
       if (req.headers.cookie === 'sucuri_cloudproxy_uuid_575ef0f62=16cc0aa4400d9c6961cce3ce380ce11a') {
         res.send(requestedPage);
       } else {
         // It returns a redirecting page if a (session) cookie is unset.
-        res.sendChallenge('js_challenge_cookie.html');
+        res.sendChallenge('sucuri_waf_18_08_2016.html');
+      }
+    });
+
+    const expectedParams = helper.extendParams({ challengesToSolve: 2 });
+
+    // We need to override cloudscraper's default jar for this test
+    const options = { uri: uri, jar: helper.defaultParams.jar };
+
+    const promise = cloudscraper.get(options, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
+
+      expect(body).to.be.equal(requestedPage);
+    });
+
+    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
+  });
+
+  it('should resolve sucuri WAF (version as on 11.08.2019) and then return page', function (done) {
+    helper.router.get('/test', function (req, res) {
+      if (req.headers.cookie === 'sucuri_cloudproxy_uuid_4d78c121f=a275131d1f983b25c7aeecd2f8c79b0d') {
+        res.send(requestedPage);
+      } else {
+        // It returns a redirecting page if a (session) cookie is unset.
+        res.sendChallenge('sucuri_waf_11_08_2019.html');
       }
     });
 
@@ -523,7 +551,7 @@ describe('Cloudscraper', function () {
         res.send(requestedPage);
       } else {
         // It returns a redirecting page if a (session) cookie is unset.
-        res.sendChallenge('js_challenge_cookie.html');
+        res.sendChallenge('sucuri_waf_18_08_2016.html');
       }
     });
 
