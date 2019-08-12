@@ -154,7 +154,7 @@ function onRequestResponse (options, error, response, body) {
   }
 
   response.responseStartTime = Date.now();
-  response.isCloudflare = /^cloudflare/i.test('' + response.caseless.get('server'));
+  response.isCloudflare = /^(cloudflare|sucuri)/i.test('' + response.caseless.get('server'));
   response.isHTML = /text\/html/i.test('' + response.caseless.get('content-type'));
 
   // If body isn't a buffer, this is a custom response body.
