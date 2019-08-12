@@ -1,5 +1,8 @@
 ## Change Log
 
+### 4.1.3 (12/07/2019)
+- [#242](https://github.com/codemanki/cloudscraper/pull/242) Update Sucuri WAF Solving.
+
 ### 4.1.2 (23/05/2019)
 - [#219](https://github.com/codemanki/cloudscraper/pull/219) Remove a few problematic TLSv1.0 ciphers.
 
