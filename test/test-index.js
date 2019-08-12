@@ -56,9 +56,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal(expectedBody);
+      expect(promise).to.eventually.equal(expectedBody).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
   });
 
   it('should return json', function (done) {
@@ -75,9 +74,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.eql(expectedBody);
+      expect(promise).to.eventually.eql(expectedBody).and.notify(done);
     });
-
-    expect(promise).to.eventually.eql(expectedBody).and.notify(done);
   });
 
   it('should return requested data, if cloudflare is disabled for page', function (done) {
@@ -93,9 +91,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal('xyz');
+      expect(promise).to.eventually.equal('xyz').and.notify(done);
     });
-
-    expect(promise).to.eventually.equal('xyz').and.notify(done);
   });
 
   it('should return requested page, if cloudflare is disabled for page', function (done) {
@@ -107,9 +104,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should not trigger any error if recaptcha is present in page not protected by CF', function (done) {
@@ -123,9 +119,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(helper.defaultParams);
       expect(body).to.be.equal(expectedBody);
+      expect(promise).to.eventually.equal(expectedBody).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(expectedBody).and.notify(done);
   });
 
   it('should resolve challenge (version as on 21.05.2015) and then return page', function (done) {
@@ -160,9 +155,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve challenge (version as on 09.06.2016) and then return page', function (done) {
@@ -198,9 +192,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve challenge (version as on 13.03.2019) and then return page', function (done) {
@@ -236,9 +229,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve challenge (version as on 21.03.2019) and then return page', function (done) {
@@ -273,9 +265,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve challenge (version as on 10.04.2019) and then return page', function (done) {
@@ -309,9 +300,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should resolve 2 consequent challenges', function (done) {
@@ -375,9 +365,8 @@ describe('Cloudscraper', function () {
       expect(Request.thirdCall).to.be.calledWithExactly(thirdParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.haveOwnProperty('body', requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.haveOwnProperty('body', requestedPage).and.notify(done);
   });
 
   it('should make post request with formData', function (done) {
@@ -398,9 +387,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should make delete request', function (done) {
@@ -414,9 +402,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should return raw data when encoding is null', function (done) {
@@ -433,9 +420,8 @@ describe('Cloudscraper', function () {
       expect(error).to.be.null;
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(body).to.be.eql(expectedBody);
+      expect(promise).to.eventually.eql(expectedBody).and.notify(done);
     });
-
-    expect(promise).to.eventually.eql(expectedBody).and.notify(done);
   });
 
   it('should set the given cookie and then return page', function (done) {
@@ -461,9 +447,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should not use proxy\'s uri', function (done) {
@@ -512,9 +497,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall).to.be.calledWithExactly(secondParams);
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should reuse the provided cookie jar', function (done) {
@@ -592,9 +576,8 @@ describe('Cloudscraper', function () {
       expect(Request.firstCall).to.be.calledWithExactly(firstParams);
 
       expect(body).to.include('cloudscraper@example-site.dev');
+      expect(promise).to.eventually.include('cloudscraper@example-site.dev').and.notify(done);
     });
-
-    expect(promise).to.eventually.include('cloudscraper@example-site.dev').and.notify(done);
   });
 
   it('should not error when using the baseUrl option', function (done) {
@@ -621,9 +604,8 @@ describe('Cloudscraper', function () {
       expect(Request.secondCall.args[0]).to.not.have.property('baseUrl');
 
       expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('should use the provided cloudflare timeout', function (done) {
@@ -647,9 +629,8 @@ describe('Cloudscraper', function () {
       const elapsed = Date.now() - start;
       // Aiming to be within ~450ms of specified timeout
       expect(elapsed >= 50 && elapsed <= 500).to.be.ok;
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 
   it('sandbox.document.getElementById should not error', function (done) {
@@ -668,8 +649,7 @@ describe('Cloudscraper', function () {
     const promise = cloudscraper.get(uri, function (error, response, body) {
       expect(error).to.be.null;
       expect(Request).to.be.calledTwice;
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
     });
-
-    expect(promise).to.eventually.equal(requestedPage).and.notify(done);
   });
 });

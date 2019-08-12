@@ -91,6 +91,14 @@ Object.assign(module.exports, original, {
   CloudflareError: CloudflareError
 });
 
+const desc = { configurable: true, writable: true, enumerable: false };
+const descriptors = {
+  error: desc,
+  cause: desc,
+  response: desc,
+  options: desc
+};
+
 function create (name, errorType, customize) {
   function CustomError (cause, options, response) {
     // This prevents nasty things e.g. `error.cause.error` and
@@ -98,6 +106,9 @@ function create (name, errorType, customize) {
     if (cause instanceof OriginalError) {
       return cause;
     }
+
+    // Cleanup error output
+    Object.defineProperties(this, descriptors);
 
     OriginalError.apply(this, arguments);
 
