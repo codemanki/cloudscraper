@@ -92,6 +92,9 @@ Cloudscraper wraps the requester and accepts the same options, so using cloudscr
   ```
 Please refer to the requester's documentation for further instructions.
 
+## Sucuri
+Cloudscraper can also identify and automatically bypass [Sucuri WAF](https://sucuri.net/website-firewall/). No actions are required.
+ 
 ## ReCAPTCHA
 Cloudscraper may help you with the reCAPTCHA page. Take a look at [this example](docs/examples/solve-recaptcha.js) and an [example using promises](docs/examples/solve-recaptcha-v2.js).
 
