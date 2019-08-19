@@ -14,7 +14,7 @@ describe('Sandbox (lib)', function () {
     expect(sandbox.eval).to.be.a('function');
     expect(sandbox.eval('0')).to.equal(0);
     expect(sandbox.eval('true')).to.be.true;
-    expect(sandbox.eval('undefined')).to.equal(void 0);
+    expect(sandbox.eval('undefined')).to.equal(undefined);
     expect(sandbox.eval('NaN')).to.be.a('number');
     expect(String(sandbox.eval('NaN'))).to.equal('NaN');
   });
@@ -34,7 +34,7 @@ describe('Sandbox (lib)', function () {
   it('Context() should define location.reload', function () {
     const ctx = new sandbox.Context();
 
-    expect(sandbox.eval('location.reload()', ctx)).to.equal(void 0);
+    expect(sandbox.eval('location.reload()', ctx)).to.equal(undefined);
   });
 
   it('Context() should define document.createElement', function () {
