@@ -192,7 +192,7 @@ function onCloudflareResponse (options, response, body) {
   const stringBody = body.toString('utf8');
 
   try {
-    validate(options, response, stringBody);
+    validateResponse(options, response, stringBody);
   } catch (error) {
     if (error instanceof CaptchaError && typeof options.onCaptcha === 'function') {
       // Give users a chance to solve the reCAPTCHA via services such as anti-captcha.com
@@ -224,7 +224,7 @@ function onCloudflareResponse (options, response, body) {
   onRequestComplete(options, response, body);
 }
 
-function validate (options, response, body) {
+function validateResponse (options, response, body) {
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
     // Convenience boolean
