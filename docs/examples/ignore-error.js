@@ -11,7 +11,7 @@ getHeaders(uri).then(console.log).catch(console.error);
 function getHeaders (uri) {
   return cloudscraper.head(uri)
     .catch(error => {
-      if (error.errorType === 2 && server === error.response.headers['Server']) {
+      if (error.errorType === 2 && server === error.response.headers.Server) {
         // Ignoring the error and returning the response
         return error.response;
       }

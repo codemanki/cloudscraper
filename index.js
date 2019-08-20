@@ -324,7 +324,7 @@ function onChallenge (options, response, body) {
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the answer uri.
-  options.headers['Referer'] = uri.href;
+  options.headers.Referer = uri.href;
   options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
@@ -396,7 +396,7 @@ function onCaptcha (options, response, body) {
   }
 
   // Sanity check
-  if (!payload['s']) {
+  if (!payload.s) {
     cause = 'Challenge form is missing secret input';
     return callback(new ParserError(cause, options, response));
   }
@@ -444,7 +444,7 @@ function onSubmitCaptcha (options, response) {
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the form action.
-  options.headers['Referer'] = uri.href;
+  options.headers.Referer = uri.href;
   options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_captcha';
 
   performRequest(options, false);
