@@ -15,6 +15,6 @@ function onCaptcha (options, response, body) {
   });
 }
 
-const cloudscraper = require('..').defaults({ onCaptcha });
+const cloudscraper = require('../..').defaults({ onCaptcha });
 var uri = process.argv[2];
 cloudscraper.get({ uri: uri, headers: { cookie: 'captcha=1' } }).catch(console.warn).then(console.log); // eslint-disable-line promise/catch-or-return

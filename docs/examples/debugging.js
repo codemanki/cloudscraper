@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var cloudscraper = require('..').defaults({ resolveWithFullResponse: true });
+var cloudscraper = require('../..').defaults({ resolveWithFullResponse: true });
 var fs = require('fs');
 
 var uri = process.argv[2];
