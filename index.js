@@ -410,7 +410,7 @@ function onCaptcha (options, response, body) {
       return callback(new CaptchaError(error, options, response));
     }
 
-    onSubmitCaptcha(options, response, body);
+    onSubmitCaptcha(options, response);
   };
 
   // This seems like an okay-ish API (fewer arguments to the handler)
