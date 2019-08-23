@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-var cloudscraper = require('..').defaults({ resolveWithFullResponse: true });
-var CaptchaError = require('../errors').CaptchaError;
+var cloudscraper = require('../..').defaults({ resolveWithFullResponse: true });
+var CaptchaError = require('../../errors').CaptchaError;
 
 var uri = process.argv[2];
 

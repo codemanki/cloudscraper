@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var cloudscraper = require('..');
+var cloudscraper = require('../..');
 
 cloudscraper.defaultParams.headers = {
   Connection: 'keep-alive',

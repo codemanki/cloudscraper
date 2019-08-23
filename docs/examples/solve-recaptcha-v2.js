@@ -2,7 +2,7 @@
 
 // Force a CAPTCHA response by sending bogus headers
 const headers = { /* headers without user-agent, etc. */ };
-const cloudscraper = require('..').defaults({ onCaptcha: handler, headers });
+const cloudscraper = require('../..').defaults({ onCaptcha: handler, headers });
 
 // Pseudo function that returns a promise instead of calling captcha.submit()
 function handler (options, { captcha }) {

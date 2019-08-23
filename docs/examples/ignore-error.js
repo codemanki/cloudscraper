@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const cloudscraper = require('..').defaults({ resolveWithFullResponse: true });
+const cloudscraper = require('../..').defaults({ resolveWithFullResponse: true });
 
 var uri = process.argv[2];
 // Cloudscraper thinks this server's response is a Cloudflare response
