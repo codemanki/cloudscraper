@@ -3,7 +3,7 @@
 const requestModule = require('request-promise');
 const sandbox = require('./lib/sandbox');
 const decodeEmails = require('./lib/email-decode.js');
-const getDefaultHeaders = require('./lib/headers');
+const { getDefaultHeaders, caseless } = require('./lib/headers');
 const brotli = require('./lib/brotli');
 const crypto = require('crypto');
 
@@ -153,9 +153,11 @@ function onRequestResponse (options, error, response, body) {
     return callback(new RequestError(error, options, response));
   }
 
+  const headers = caseless(response.headers);
+
   response.responseStartTime = Date.now();
-  response.isCloudflare = /^(cloudflare|sucuri)/i.test('' + response.caseless.get('server'));
-  response.isHTML = /text\/html/i.test('' + response.caseless.get('content-type'));
+  response.isCloudflare = /^(cloudflare|sucuri)/i.test('' + headers.server);
+  response.isHTML = /text\/html/i.test('' + headers['content-type']);
 
   // If body isn't a buffer, this is a custom response body.
   if (!Buffer.isBuffer(body)) {
@@ -163,7 +165,7 @@ function onRequestResponse (options, error, response, body) {
   }
 
   // Decompress brotli compressed responses
-  if (/\bbr\b/i.test('' + response.caseless.get('content-encoding'))) {
+  if (/\bbr\b/i.test('' + headers['content-encoding'])) {
     if (!brotli.isAvailable) {
       const cause = 'Received a Brotli compressed response. Please install brotli';
       return callback(new RequestError(cause, options, response));
@@ -190,7 +192,7 @@ function onCloudflareResponse (options, response, body) {
   const stringBody = body.toString('utf8');
 
   try {
-    validate(options, response, stringBody);
+    validateResponse(options, response, stringBody);
   } catch (error) {
     if (error instanceof CaptchaError && typeof options.onCaptcha === 'function') {
       // Give users a chance to solve the reCAPTCHA via services such as anti-captcha.com
@@ -222,7 +224,7 @@ function onCloudflareResponse (options, response, body) {
   onRequestComplete(options, response, body);
 }
 
-function validate (options, response, body) {
+function validateResponse (options, response, body) {
   // Finding captcha
   if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
     // Convenience boolean
@@ -408,7 +410,7 @@ function onCaptcha (options, response, body) {
       return callback(new CaptchaError(error, options, response));
     }
 
-    onSubmitCaptcha(options, response, body);
+    onSubmitCaptcha(options, response);
   };
 
   // This seems like an okay-ish API (fewer arguments to the handler)
