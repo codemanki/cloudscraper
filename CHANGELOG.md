@@ -1,5 +1,8 @@
 ## Change Log
 
+### 4.1.4 (24/08/2019)
+- [#247](https://github.com/codemanki/cloudscraper/pull/247) Optimize header checks.
+
 ### 4.1.3 (12/07/2019)
 - [#242](https://github.com/codemanki/cloudscraper/pull/242) Update Sucuri WAF Solving.
 
