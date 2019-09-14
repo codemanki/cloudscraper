@@ -360,12 +360,22 @@ function onCaptcha (options, response, body) {
   }
 
   const form = match[1];
+  let siteKey;
 
-  match = form.match(/\/recaptcha\/api\/fallback\?k=([^\s"'<>]*)/);
-  if (!match) {
-    // The site key wasn't inside the form so search the entire document
-    match = body.match(/data-sitekey=["']?([^\s"'<>]*)/);
-    if (!match) {
+  match = body.match(/\sdata-sitekey=["']?([^\s"'<>&]+)/);
+  if (match) {
+    siteKey = match[1];
+  } else {
+    const keys = [];
+    const re = /\/recaptcha\/api2?\/(?:fallback|anchor|bframe)\?(?:[^\s<>]+&(?:amp;)?)?[Kk]=["']?([^\s"'<>&]+)/g;
+
+    while ((match = re.exec(body)) !== null) {
+      keys.push(match[1]);
+    }
+
+    siteKey = keys.sort((a, b) => b.indexOf('fallback'))[0];
+
+    if (!siteKey) {
       cause = 'Unable to find the reCAPTCHA site key';
       return callback(new ParserError(cause, options, response));
     }
@@ -373,8 +383,8 @@ function onCaptcha (options, response, body) {
 
   // Everything that is needed to solve the reCAPTCHA
   response.captcha = {
+    siteKey,
     uri: response.request.uri,
-    siteKey: match[1],
     form: payload
   };
 
