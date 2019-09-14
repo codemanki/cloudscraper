@@ -6,6 +6,7 @@ const decodeEmails = require('./lib/email-decode.js');
 const { getDefaultHeaders, caseless } = require('./lib/headers');
 const brotli = require('./lib/brotli');
 const crypto = require('crypto');
+const { deprecate } = require('util');
 
 const {
   RequestError,
@@ -373,10 +374,18 @@ function onCaptcha (options, response, body) {
 
   // Everything that is needed to solve the reCAPTCHA
   response.captcha = {
-    url: response.request.uri.href,
+    uri: response.request.uri,
     siteKey: match[1],
     form: payload
   };
+
+  Object.defineProperty(response.captcha, 'url', {
+    configurable: true,
+    enumerable: false,
+    get: deprecate(function () {
+      return response.request.uri.href;
+    }, 'captcha.url is deprecated. Please use captcha.uri instead.')
+  });
 
   // Adding formData
   match = form.match(/<input(?: [^<>]*)? name=[^<>]+>/g);
