@@ -96,7 +96,6 @@ describe('Cloudscraper', function () {
           isCloudflare: true,
           isHTML: true,
           isCaptcha: true,
-          challengeForm: sinon.match.string,
           captcha: sinon.match.object
         });
 

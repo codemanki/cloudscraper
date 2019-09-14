@@ -359,8 +359,7 @@ function onCaptcha (options, response, body) {
     return callback(new ParserError(cause, options, response));
   }
 
-  // Defining response.challengeForm for debugging purposes
-  const form = response.challengeForm = match[1];
+  const form = match[1];
 
   match = form.match(/\/recaptcha\/api\/fallback\?k=([^\s"'<>]*)/);
   if (!match) {
