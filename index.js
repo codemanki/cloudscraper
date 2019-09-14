@@ -15,6 +15,8 @@ const {
   ParserError
 } = require('./errors');
 
+let debugging = false;
+
 const HOST = Symbol('host');
 
 module.exports = defaults.call(requestModule);
@@ -62,9 +64,18 @@ function defaults (params) {
   if (isRequestModule) {
     cloudscraper.defaults = defaults;
   }
+
   // Expose the debug option
-  Object.defineProperty(cloudscraper, 'debug',
-    Object.getOwnPropertyDescriptor(this, 'debug'));
+  Object.defineProperty(cloudscraper, 'debug', {
+    configurable: true,
+    enumerable: true,
+    set (value) {
+      requestModule.debug = debugging = true;
+    },
+    get () {
+      return debugging;
+    }
+  });
 
   return cloudscraper;
 }
@@ -296,7 +307,7 @@ function onChallenge (options, response, body) {
       timeout = parseInt(match[2]);
 
       if (timeout > options.cloudflareMaxTimeout) {
-        if (requestModule.debug) {
+        if (debugging) {
           console.warn('Cloudflare\'s timeout is excessive: ' + (timeout / 1000) + 's');
         }
 
@@ -379,6 +390,10 @@ function onCaptcha (options, response, body) {
       cause = 'Unable to find the reCAPTCHA site key';
       return callback(new ParserError(cause, options, response));
     }
+
+    if (debugging) {
+      console.warn('Failed to find data-sitekey, using a fallback:', keys);
+    }
   }
 
   // Everything that is needed to solve the reCAPTCHA
@@ -419,6 +434,10 @@ function onCaptcha (options, response, body) {
   if (!payload.s) {
     cause = 'Challenge form is missing secret input';
     return callback(new ParserError(cause, options, response));
+  }
+
+  if (debugging) {
+    console.warn('Captcha:', response.captcha);
   }
 
   // The callback used to green light form submission
