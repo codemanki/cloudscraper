@@ -384,6 +384,7 @@ function onCaptcha (options, response, body) {
       // Prioritize the explicit fallback siteKey over other matches
       if (match[0].indexOf('fallback') !== -1) {
         keys.unshift(match[1]);
+        if (!debugging) break;
       } else {
         keys.push(match[1]);
       }
