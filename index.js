@@ -381,10 +381,15 @@ function onCaptcha (options, response, body) {
     const re = /\/recaptcha\/api2?\/(?:fallback|anchor|bframe)\?(?:[^\s<>]+&(?:amp;)?)?[Kk]=["']?([^\s"'<>&]+)/g;
 
     while ((match = re.exec(body)) !== null) {
-      keys.push(match[1]);
+      // Prioritize the explicit fallback siteKey over other matches
+      if (match[0].indexOf('fallback') !== -1) {
+        keys.unshift(match[1]);
+      } else {
+        keys.push(match[1]);
+      }
     }
 
-    siteKey = keys.sort((a, b) => b.indexOf('fallback'))[0];
+    siteKey = keys[0];
 
     if (!siteKey) {
       cause = 'Unable to find the reCAPTCHA site key';
