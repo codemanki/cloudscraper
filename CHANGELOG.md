@@ -1,5 +1,8 @@
 ## Change Log
 
+### 4.2.0 (24/09/2019)
+- [#260](https://github.com/codemanki/cloudscraper/pull/260) Update reCaptcha handling. Deprecate `captcha.url` in preference of `captcha.uri`. [Fix fallback siteKey handling](https://github.com/codemanki/cloudscraper/issues/259#issuecomment-531450844)
+
 ### 4.1.4 (24/08/2019)
 - [#247](https://github.com/codemanki/cloudscraper/pull/247) Optimize header checks.
 
