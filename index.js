@@ -6,6 +6,7 @@ const decodeEmails = require('./lib/email-decode.js');
 const { getDefaultHeaders, caseless } = require('./lib/headers');
 const brotli = require('./lib/brotli');
 const crypto = require('crypto');
+const { deprecate } = require('util');
 
 const {
   RequestError,
@@ -13,6 +14,8 @@ const {
   CloudflareError,
   ParserError
 } = require('./errors');
+
+let debugging = false;
 
 const HOST = Symbol('host');
 
@@ -61,9 +64,18 @@ function defaults (params) {
   if (isRequestModule) {
     cloudscraper.defaults = defaults;
   }
+
   // Expose the debug option
-  Object.defineProperty(cloudscraper, 'debug',
-    Object.getOwnPropertyDescriptor(this, 'debug'));
+  Object.defineProperty(cloudscraper, 'debug', {
+    configurable: true,
+    enumerable: true,
+    set (value) {
+      requestModule.debug = debugging = true;
+    },
+    get () {
+      return debugging;
+    }
+  });
 
   return cloudscraper;
 }
@@ -295,7 +307,7 @@ function onChallenge (options, response, body) {
       timeout = parseInt(match[2]);
 
       if (timeout > options.cloudflareMaxTimeout) {
-        if (requestModule.debug) {
+        if (debugging) {
           console.warn('Cloudflare\'s timeout is excessive: ' + (timeout / 1000) + 's');
         }
 
@@ -358,25 +370,52 @@ function onCaptcha (options, response, body) {
     return callback(new ParserError(cause, options, response));
   }
 
-  // Defining response.challengeForm for debugging purposes
-  const form = response.challengeForm = match[1];
+  const form = match[1];
+  let siteKey;
 
-  match = form.match(/\/recaptcha\/api\/fallback\?k=([^\s"'<>]*)/);
-  if (!match) {
-    // The site key wasn't inside the form so search the entire document
-    match = body.match(/data-sitekey=["']?([^\s"'<>]*)/);
-    if (!match) {
+  match = body.match(/\sdata-sitekey=["']?([^\s"'<>&]+)/);
+  if (match) {
+    siteKey = match[1];
+  } else {
+    const keys = [];
+    const re = /\/recaptcha\/api2?\/(?:fallback|anchor|bframe)\?(?:[^\s<>]+&(?:amp;)?)?[Kk]=["']?([^\s"'<>&]+)/g;
+
+    while ((match = re.exec(body)) !== null) {
+      // Prioritize the explicit fallback siteKey over other matches
+      if (match[0].indexOf('fallback') !== -1) {
+        keys.unshift(match[1]);
+        if (!debugging) break;
+      } else {
+        keys.push(match[1]);
+      }
+    }
+
+    siteKey = keys[0];
+
+    if (!siteKey) {
       cause = 'Unable to find the reCAPTCHA site key';
       return callback(new ParserError(cause, options, response));
+    }
+
+    if (debugging) {
+      console.warn('Failed to find data-sitekey, using a fallback:', keys);
     }
   }
 
   // Everything that is needed to solve the reCAPTCHA
   response.captcha = {
-    url: response.request.uri.href,
-    siteKey: match[1],
+    siteKey,
+    uri: response.request.uri,
     form: payload
   };
+
+  Object.defineProperty(response.captcha, 'url', {
+    configurable: true,
+    enumerable: false,
+    get: deprecate(function () {
+      return response.request.uri.href;
+    }, 'captcha.url is deprecated. Please use captcha.uri instead.')
+  });
 
   // Adding formData
   match = form.match(/<input(?: [^<>]*)? name=[^<>]+>/g);
@@ -401,6 +440,10 @@ function onCaptcha (options, response, body) {
   if (!payload.s) {
     cause = 'Challenge form is missing secret input';
     return callback(new ParserError(cause, options, response));
+  }
+
+  if (debugging) {
+    console.warn('Captcha:', response.captcha);
   }
 
   // The callback used to green light form submission

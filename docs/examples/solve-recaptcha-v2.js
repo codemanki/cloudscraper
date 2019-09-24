@@ -8,7 +8,7 @@ const cloudscraper = require('../..').defaults({ onCaptcha: handler, headers });
 function handler (options, { captcha }) {
   return new Promise((resolve, reject) => {
     // Here you do some magic with the siteKey provided by cloudscraper
-    console.error('The url is "' + captcha.url + '"');
+    console.error('The url is "' + captcha.uri.href + '"');
     console.error('The site key is "' + captcha.siteKey + '"');
     // captcha.form['g-recaptcha-response'] = /* Obtain from your service */
     reject(new Error('This is a dummy function.'));
@@ -16,9 +16,9 @@ function handler (options, { captcha }) {
 }
 
 // An example handler with destructuring arguments
-function alternative (options, { captcha: { url, siteKey } }) {
+function alternative (options, { captcha: { uri, siteKey } }) {
   // Here you do some magic with the siteKey provided by cloudscraper
-  console.error('The url is "' + url + '"');
+  console.error('The url is "' + uri.href + '"');
   console.error('The site key is "' + siteKey + '"');
   return Promise.reject(new Error('This is a dummy function'));
 }

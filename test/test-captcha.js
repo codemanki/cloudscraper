@@ -96,12 +96,12 @@ describe('Cloudscraper', function () {
           isCloudflare: true,
           isHTML: true,
           isCaptcha: true,
-          challengeForm: sinon.match.string,
           captcha: sinon.match.object
         });
 
         sinon.assert.match(response.captcha, {
-          url: uri,
+          url: uri, // <-- Deprecated
+          uri: sinon.match.same(response.request.uri),
           form: { s: secret },
           siteKey: siteKey,
           submit: sinon.match.func
