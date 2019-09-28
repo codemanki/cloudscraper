@@ -1,5 +1,9 @@
 ## Change Log
 
+### 4.3.0 (28/09/2019)
+- [#267](https://github.com/codemanki/cloudscraper/pull/267) Typescript definitions.
+- [#271](https://github.com/codemanki/cloudscraper/pull/271) Fix brotli compressed JSON responses.
+
 ### 4.2.0 (24/09/2019)
 - [#260](https://github.com/codemanki/cloudscraper/pull/260) Update reCaptcha handling. Deprecate `captcha.url` in preference of `captcha.uri`. [Fix fallback siteKey handling](https://github.com/codemanki/cloudscraper/issues/259#issuecomment-531450844)
 
