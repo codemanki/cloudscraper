@@ -5,6 +5,7 @@
 const cloudscraper = require('../index');
 const request      = require('request-promise');
 const helper       = require('./helper');
+const brotli       = require('../lib/brotli');
 const querystring  = require('querystring');
 
 const sinon   = require('sinon');
@@ -60,11 +61,35 @@ describe('Cloudscraper', function () {
     });
   });
 
-  it('should return json', function (done) {
+  it('should return parsed JSON', function (done) {
     const expectedBody = { a: 'test' };
 
     helper.router.get('/test', function (req, res) {
       res.send(expectedBody);
+    });
+
+    const expectedParams = helper.extendParams({ json: true });
+    const options = { uri: uri, json: true };
+
+    const promise = cloudscraper.get(options, function (error, response, body) {
+      expect(error).to.be.null;
+      expect(Request).to.be.calledOnceWithExactly(expectedParams);
+      expect(body).to.be.eql(expectedBody);
+      expect(promise).to.eventually.eql(expectedBody).and.notify(done);
+    });
+  });
+
+  (brotli.isAvailable ? it : it.skip)('should decompress Brotli and return parsed JSON', function (done) {
+    const expectedBody = { a: 'test' };
+
+    const compressed = Buffer.from([
+      0x8b, 0x05, 0x80, 0x7b, 0x22, 0x61, 0x22, 0x3a,
+      0x22, 0x74, 0x65, 0x73, 0x74, 0x22, 0x7d, 0x03
+    ]);
+
+    helper.router.get('/test', function (req, res) {
+      res.set('content-encoding', 'br');
+      res.end(compressed, 'binary');
     });
 
     const expectedParams = helper.extendParams({ json: true });

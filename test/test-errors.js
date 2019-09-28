@@ -5,6 +5,7 @@
 const cloudscraper = require('../index');
 const request      = require('request-promise');
 const helper       = require('./helper');
+const brotli       = require('../lib/brotli');
 const errors       = require('../errors');
 
 const sinon  = require('sinon');
@@ -202,6 +203,35 @@ describe('Cloudscraper', function () {
       assert.equal(error.response.statusCode, 503, 'status code');
 
       expect(error.response.body).to.be.equal(undefined);
+      expect(Request).to.be.calledOnceWithExactly(expectedParams);
+      expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
+    });
+  });
+
+  (brotli.isAvailable ? it.skip : it)('should return error if content-type is brotli and missing dep', function (done) {
+    // Brotli compressed JSON: {"a":"test"}
+    const compressed = Buffer.from([
+      0x8b, 0x05, 0x80, 0x7b, 0x22, 0x61, 0x22, 0x3a,
+      0x22, 0x74, 0x65, 0x73, 0x74, 0x22, 0x7d, 0x03
+    ]);
+
+    helper.router.get('/test', function (req, res) {
+      res.set('content-encoding', 'br');
+      res.status(503).end(compressed, 'binary');
+    });
+
+    const expectedParams = helper.extendParams({ json: true });
+    const options = { uri: uri, json: true };
+
+    const promise = cloudscraper.get(options, function (error) {
+      expect(error).to.be.instanceOf(errors.RequestError);
+      expect(error).to.have.property('error').that.is.ok;
+      expect(error).to.have.property('errorType', 0);
+
+      assert.equal(error.response.statusCode, 503, 'status code');
+
+      assert(Buffer.isBuffer(error.response.body), 'response type');
+      expect(error.response.body).to.be.eql(compressed);
       expect(Request).to.be.calledOnceWithExactly(expectedParams);
       expect(promise).to.be.rejectedWith(errors.RequestError).and.notify(done);
     });

@@ -183,7 +183,22 @@ function onRequestResponse (options, error, response, body) {
       return callback(new RequestError(cause, options, response));
     }
 
-    response.body = body = brotli.decompress(body);
+    try {
+      response.body = body = brotli.decompress(body);
+    } catch (error) {
+      return callback(new RequestError(error, options, response));
+    }
+
+    // Request doesn't handle brotli and would've failed to parse JSON.
+    if (options.json) {
+      try {
+        response.body = body = JSON.parse(body, response.request._jsonReviver);
+        // If successful, this isn't a challenge.
+        return callback(null, response, body);
+      } catch (error) {
+        // Request's debug will log the failure, no need to duplicate.
+      }
+    }
   }
 
   if (response.isCloudflare && response.isHTML) {
