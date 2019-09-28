@@ -14,5 +14,19 @@
         "VariableDeclarator": true
       }
     }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "extends": [
+        "standard",
+        "plugin:promise/recommended",
+        "plugin:@typescript-eslint/recommended"
+      ],
+      "rules": {
+        "semi": [2, "always"]
+      }
+    }
+  ]
 }
