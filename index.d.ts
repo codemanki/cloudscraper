@@ -77,6 +77,7 @@ declare namespace cloudscraper {
 
   interface CloudscraperAPI extends request.RequestAPI<Cloudscraper, CoreOptions, request.RequiredUriUrl> {
     defaultParams: DefaultOptions;
+    (options: Options): Promise<string>;
   }
 
   type OptionsWithUri = request.UriOptions & CoreOptions;
