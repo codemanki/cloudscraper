@@ -1,4 +1,4 @@
-import { Url } from 'url';
+import { URL } from 'url';
 import http = require('http');
 import https = require('https');
 import Promise = require('bluebird');
@@ -20,7 +20,7 @@ declare namespace cloudscraper {
 
     url: string; // <- deprecated
     siteKey: string;
-    uri: Url;
+    uri: URL;
     form: {
       [key: string]: string;
       // Secret form value
@@ -77,6 +77,7 @@ declare namespace cloudscraper {
 
   interface CloudscraperAPI extends request.RequestAPI<Cloudscraper, CoreOptions, request.RequiredUriUrl> {
     defaultParams: DefaultOptions;
+    (options: OptionsWithUrl): Promise<any>;
   }
 
   type OptionsWithUri = request.UriOptions & CoreOptions;
