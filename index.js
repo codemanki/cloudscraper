@@ -290,9 +290,9 @@ function onChallenge (options, response, body) {
   let timeout = parseInt(options.cloudflareTimeout);
   let match;
 
-  match = body.match(/name="s" value="(.+?)"/);
+  match = body.match(/name="r" value="(.+?)"/);
   if (match) {
-    payload.s = match[1];
+    payload.r = match[1];
   }
 
   match = body.match(/name="jschl_vc" value="(\w+)"/);
@@ -350,17 +350,19 @@ function onChallenge (options, response, body) {
     return callback(new ParserError(cause, options, response));
   }
 
+  options.method = 'POST';
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the answer uri.
   options.headers.Referer = uri.href;
-  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+  match = body.match(/id="challenge-form" action="(.+?)"/);
+  options.uri = uri.protocol + '//' + uri.host + match[1];
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
     options.baseUrl = undefined;
   }
   // Set the query string and decrement the number of challenges to solve.
-  options.qs = payload;
+  options.form = payload;
   options.challengesToSolve -= 1;
 
   // Make request with answer after delay.
@@ -452,7 +454,7 @@ function onCaptcha (options, response, body) {
   }
 
   // Sanity check
-  if (!payload.s) {
+  if (!payload.r) {
     cause = 'Challenge form is missing secret input';
     return callback(new ParserError(cause, options, response));
   }
