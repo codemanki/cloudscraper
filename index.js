@@ -289,12 +289,11 @@ function onChallenge (options, response, body) {
 
   let timeout = parseInt(options.cloudflareTimeout);
   let match;
-  let hiddenInputName;
 
   match = body.match(/name="(.+?)" value="(.+?)"/);
 
   if (match) {
-    hiddenInputName = match[1];
+    let hiddenInputName = match[1];
     payload[hiddenInputName] = match[2];
   }
 
@@ -361,7 +360,7 @@ function onChallenge (options, response, body) {
   match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
   if(match && match[2] && match[2] === 'POST') {
     options.uri = uri.protocol + '//' + uri.host + match[1];
-    // Pass the payload using query string
+    // Pass the payload using body form
     options.form = payload;
     options.method = 'POST';
   } else {
@@ -370,7 +369,7 @@ function onChallenge (options, response, body) {
     // Pass the payload using query string
     options.qs = payload;
   }
-  //Decrement the number of challenges to solve. 
+  // Decrement the number of challenges to solve. 
   options.challengesToSolve -= 1;
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
