@@ -290,9 +290,11 @@ function onChallenge (options, response, body) {
   let timeout = parseInt(options.cloudflareTimeout);
   let match;
 
-  match = body.match(/name="s" value="(.+?)"/);
+  match = body.match(/name="(.+?)" value="(.+?)"/);
+
   if (match) {
-    payload.s = match[1];
+    const hiddenInputName = match[1];
+    payload[hiddenInputName] = match[2];
   }
 
   match = body.match(/name="jschl_vc" value="(\w+)"/);
@@ -354,14 +356,25 @@ function onChallenge (options, response, body) {
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the answer uri.
   options.headers.Referer = uri.href;
-  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+  // Check is form to be submitted via GET or POST
+  match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
+  if (match && match[2] && match[2] === 'POST') {
+    options.uri = uri.protocol + '//' + uri.host + match[1];
+    // Pass the payload using body form
+    options.form = payload;
+    options.method = 'POST';
+  } else {
+    // Whatever is there, fallback to GET
+    options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+    // Pass the payload using query string
+    options.qs = payload;
+  }
+  // Decrement the number of challenges to solve.
+  options.challengesToSolve -= 1;
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
     options.baseUrl = undefined;
   }
-  // Set the query string and decrement the number of challenges to solve.
-  options.qs = payload;
-  options.challengesToSolve -= 1;
 
   // Make request with answer after delay.
   timeout -= Date.now() - response.responseStartTime;

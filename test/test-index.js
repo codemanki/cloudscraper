@@ -329,6 +329,42 @@ describe('Cloudscraper', function () {
     });
   });
 
+  it('should resolve challenge (version as on 28.11.2019) and then return page', function (done) {
+    helper.router
+      .get('/test', function (req, res) {
+        res.sendChallenge('js_challenge_28_11_2019.html');
+      })
+      .post('/', function (req, res) {
+        res.send(requestedPage);
+      });
+
+    const expectedParams = helper.extendParams({
+      uri: helper.resolve('/?__cf_chl_jschl_tk__=xxxxx'),
+      method: 'POST',
+      form: {
+        r: '9dbc5c7ec65cb42893f2fd063ca80a2185ad6b6b-1574931141',
+        jschl_vc: '44a73ed828ddcd806a342f7c289cc438',
+        jschl_answer: String(20.2553376255 + helper.uri.hostname.length),
+        pass: '1574931145.541-UbeyT63kjo'
+      },
+      headers: {
+        Referer: uri
+      },
+      challengesToSolve: 2
+    });
+
+    const promise = cloudscraper.get(uri, function (error, response, body) {
+      expect(error).to.be.null;
+
+      expect(Request).to.be.calledTwice;
+      expect(Request.firstCall).to.be.calledWithExactly(helper.defaultParams);
+      expect(Request.secondCall).to.be.calledWithExactly(expectedParams);
+
+      expect(body).to.be.equal(requestedPage);
+      expect(promise).to.eventually.equal(requestedPage).and.notify(done);
+    });
+  });
+
   it('should resolve 2 consequent challenges', function (done) {
     // Cloudflare is enabled for site. It returns a page with JS challenge
     let additionalChallenge = true;
