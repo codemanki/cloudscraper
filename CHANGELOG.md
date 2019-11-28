@@ -1,5 +1,8 @@
 ## Change Log
 
+### 4.4.0 (28/11/2019)
+- [#288](https://github.com/codemanki/cloudscraper/pull/288) Update code to parse latest CF challenge.
+
 ### 4.3.0 (28/09/2019)
 - [#267](https://github.com/codemanki/cloudscraper/pull/267) Typescript definitions.
 - [#271](https://github.com/codemanki/cloudscraper/pull/271) Fix brotli compressed JSON responses.
