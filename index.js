@@ -293,7 +293,7 @@ function onChallenge (options, response, body) {
   match = body.match(/name="(.+?)" value="(.+?)"/);
 
   if (match) {
-    let hiddenInputName = match[1];
+    const hiddenInputName = match[1];
     payload[hiddenInputName] = match[2];
   }
 
@@ -358,7 +358,7 @@ function onChallenge (options, response, body) {
   options.headers.Referer = uri.href;
   // Check is form to be submitted via GET or POST
   match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
-  if(match && match[2] && match[2] === 'POST') {
+  if (match && match[2] && match[2] === 'POST') {
     options.uri = uri.protocol + '//' + uri.host + match[1];
     // Pass the payload using body form
     options.form = payload;
@@ -369,7 +369,7 @@ function onChallenge (options, response, body) {
     // Pass the payload using query string
     options.qs = payload;
   }
-  // Decrement the number of challenges to solve. 
+  // Decrement the number of challenges to solve.
   options.challengesToSolve -= 1;
   // baseUrl can't be used in conjunction with an absolute uri
   if (options.baseUrl !== undefined) {
