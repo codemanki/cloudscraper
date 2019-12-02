@@ -442,7 +442,7 @@ function onCaptcha (options, response, body) {
     siteKey,
     uri: response.request.uri,
     form: payload,
-    rayId,
+    rayId
   };
 
   match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
@@ -535,7 +535,7 @@ function onSubmitCaptcha (options, response) {
 
   options.method = response.captcha.formMethod;
   options.qs = {
-      __cf_chl_captcha_tk__: response.captcha.formActionUri.match(/__cf_chl_captcha_tk__=(.*)/)[1]
+    __cf_chl_captcha_tk__: response.captcha.formActionUri.match(/__cf_chl_captcha_tk__=(.*)/)[1]
   };
 
   options.form = response.captcha.form;
