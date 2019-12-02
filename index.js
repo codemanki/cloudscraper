@@ -359,13 +359,13 @@ function onChallenge (options, response, body) {
   // Check is form to be submitted via GET or POST
   match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
   if (match && match[2] && match[2] === 'POST') {
-	options.uri = uri.protocol + '//' + uri.host + match[1];
+    options.uri = uri.protocol + '//' + uri.host + match[1];
     // Pass the payload using body form
     options.form = payload;
     options.method = 'POST';
   } else {
     // Whatever is there, fallback to GET
-	options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
+    options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_jschl';
     // Pass the payload using query string
     options.qs = payload;
   }
@@ -400,14 +400,13 @@ function onCaptcha (options, response, body) {
 
   const form = match[1];
   let siteKey;
-  let rayId;
 
   match = body.match(/\sdata-ray=["']?([^\s"'<>&]+)/);
   if (!match) {
-	cause = 'Unable to find cloudflare ray id';
-	return callback(new ParserError(cause, options, response));
+    cause = 'Unable to find cloudflare ray id';
+    return callback(new ParserError(cause, options, response));
   }
-  rayId = match[1];
+  const rayId = match[1];
 
   match = body.match(/\sdata-sitekey=["']?([^\s"'<>&]+)/);
   if (match) {
@@ -442,13 +441,13 @@ function onCaptcha (options, response, body) {
   response.captcha = {
     siteKey,
     uri: response.request.uri,
-	form: payload,
-	rayId,
+    form: payload,
+    rayId,
   };
 
   match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
   if (!match) {
-	cause = 'Challenge form action and method extraction failed';
+    cause = 'Challenge form action and method extraction failed';
     return callback(new ParserError(cause, options, response));
   }
 
@@ -484,7 +483,7 @@ function onCaptcha (options, response, body) {
     }
   }
 
-  payload['id'] = rayId;
+  payload.id = rayId;
 
   // Sanity check
   if (!payload.r) {
@@ -536,8 +535,9 @@ function onSubmitCaptcha (options, response) {
 
   options.method = response.captcha.formMethod;
   options.qs = {
-	  '__cf_chl_captcha_tk__': response.captcha.formActionUri.match(/__cf_chl_captcha_tk__=(.*)/)[1]
-  }
+      __cf_chl_captcha_tk__: response.captcha.formActionUri.match(/__cf_chl_captcha_tk__=(.*)/)[1]
+  };
+
   options.form = response.captcha.form;
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
@@ -546,7 +546,7 @@ function onSubmitCaptcha (options, response) {
   options.uri = uri.protocol + '//' + uri.host + response.captcha.formActionUri;
 
   if (debugging) {
-	console.log('Submit captcha url: ' + options.uri);
+    console.log('Submit captcha url: ' + options.uri);
   }
 
   performRequest(options, false);
