@@ -1,5 +1,8 @@
 ## Change Log
 
+### 4.5.0 (03/12/2019)
+- [#293](https://github.com/codemanki/cloudscraper/pull/293) Update code to parse latest CF recaptcha.
+
 ### 4.4.0 (28/11/2019)
 - [#288](https://github.com/codemanki/cloudscraper/pull/288) Update code to parse latest CF challenge.
 
