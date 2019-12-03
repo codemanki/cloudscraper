@@ -251,9 +251,23 @@ function onCloudflareResponse (options, response, body) {
   onRequestComplete(options, response, body);
 }
 
+function detectRecaptchaVersion (body) {
+  // New version > Dec 2019
+  if (/__cf_chl_captcha_tk__=(.*)/i.test(body)) { // Test for ver2 first, as it also has ver2 fields
+    return 'ver2';
+    // Old version < Dec 2019
+  } else if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
+    return 'ver1';
+  }
+
+  return false;
+}
+
 function validateResponse (options, response, body) {
   // Finding captcha
-  if (body.indexOf('why_captcha') !== -1 || /cdn-cgi\/l\/chk_captcha/i.test(body)) {
+  // Old version < Dec 2019
+  const recaptchaVer = detectRecaptchaVersion(body);
+  if (recaptchaVer) {
     // Convenience boolean
     response.isCaptcha = true;
     throw new CaptchaError('captcha', options, response);
@@ -383,11 +397,13 @@ function onChallenge (options, response, body) {
 
 // Parses the reCAPTCHA form and hands control over to the user
 function onCaptcha (options, response, body) {
+  const recaptchaVer = detectRecaptchaVersion(body);
+  const isRecaptchaVer2 = recaptchaVer === 'ver2';
   const callback = options.callback;
   // UDF that has the responsibility of returning control back to cloudscraper
   const handler = options.onCaptcha;
   // The form data to send back to Cloudflare
-  const payload = { /* s, g-re-captcha-response */ };
+  const payload = { /* r|s, g-re-captcha-response */ };
 
   let cause;
   let match;
@@ -399,7 +415,18 @@ function onCaptcha (options, response, body) {
   }
 
   const form = match[1];
+
   let siteKey;
+  let rayId; // only for ver 2
+
+  if (isRecaptchaVer2) {
+    match = body.match(/\sdata-ray=["']?([^\s"'<>&]+)/);
+    if (!match) {
+      cause = 'Unable to find cloudflare ray id';
+      return callback(new ParserError(cause, options, response));
+    }
+    rayId = match[1];
+  }
 
   match = body.match(/\sdata-sitekey=["']?([^\s"'<>&]+)/);
   if (match) {
@@ -434,8 +461,23 @@ function onCaptcha (options, response, body) {
   response.captcha = {
     siteKey,
     uri: response.request.uri,
-    form: payload
+    form: payload,
+    version: recaptchaVer
   };
+
+  if (isRecaptchaVer2) {
+    response.rayId = rayId;
+
+    match = body.match(/id="challenge-form" action="(.+?)" method="(.+?)"/);
+    if (!match) {
+      cause = 'Challenge form action and method extraction failed';
+      return callback(new ParserError(cause, options, response));
+    }
+    response.captcha.formMethod = match[2];
+    match = match[1].match(/\/(.*)/);
+    response.captcha.formActionUri = match[0];
+    payload.id = rayId;
+  }
 
   Object.defineProperty(response.captcha, 'url', {
     configurable: true,
@@ -465,7 +507,7 @@ function onCaptcha (options, response, body) {
   }
 
   // Sanity check
-  if (!payload.s) {
+  if (!payload.s && !payload.r) {
     cause = 'Challenge form is missing secret input';
     return callback(new ParserError(cause, options, response));
   }
@@ -506,19 +548,34 @@ function onCaptcha (options, response, body) {
 function onSubmitCaptcha (options, response) {
   const callback = options.callback;
   const uri = response.request.uri;
+  const isRecaptchaVer2 = response.captcha.version === 'ver2';
 
   if (!response.captcha.form['g-recaptcha-response']) {
     const cause = 'Form submission without g-recaptcha-response';
     return callback(new CaptchaError(cause, options, response));
   }
 
-  options.method = 'GET';
-  options.qs = response.captcha.form;
+  if (isRecaptchaVer2) {
+    options.qs = {
+      __cf_chl_captcha_tk__: response.captcha.formActionUri.match(/__cf_chl_captcha_tk__=(.*)/)[1]
+    };
+
+    options.form = response.captcha.form;
+  } else {
+    options.qs = response.captcha.form;
+  }
+
+  options.method = response.captcha.formMethod || 'GET';
+
   // Prevent reusing the headers object to simplify unit testing.
   options.headers = Object.assign({}, options.headers);
   // Use the original uri as the referer and to construct the form action.
   options.headers.Referer = uri.href;
-  options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_captcha';
+  if (isRecaptchaVer2) {
+    options.uri = uri.protocol + '//' + uri.host + response.captcha.formActionUri;
+  } else {
+    options.uri = uri.protocol + '//' + uri.host + '/cdn-cgi/l/chk_captcha';
+  }
 
   performRequest(options, false);
 }

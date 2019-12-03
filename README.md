@@ -203,6 +203,7 @@ Current Cloudflare implementation requires browser to respect the timeout of 5 s
 
 ## Kudos to contributors
  - [Dwayne](https://github.com/pro-src)
+ - [drdokk](https://github.com/drdokk)
  - [Cole Faust](https://github.com/Colecf)
  - [Jeongbong Seo](https://github.com/jngbng)
  - [Mike van Rossum](https://github.com/askmike)

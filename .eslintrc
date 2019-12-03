@@ -9,6 +9,7 @@
   ],
   "rules": {
     "semi": [2, "always"],
+    "no-trailing-spaces": [0],
     "no-multi-spaces": [1, {
       "exceptions": {
         "VariableDeclarator": true
