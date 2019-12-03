@@ -266,7 +266,7 @@ function detectRecaptchaVersion (body) {
 function validateResponse (options, response, body) {
   // Finding captcha
   // Old version < Dec 2019
-  let recaptchaVer = detectRecaptchaVersion(body);
+  const recaptchaVer = detectRecaptchaVersion(body);
   if (recaptchaVer) {
     // Convenience boolean
     response.isCaptcha = true;
@@ -397,8 +397,8 @@ function onChallenge (options, response, body) {
 
 // Parses the reCAPTCHA form and hands control over to the user
 function onCaptcha (options, response, body) {
-  let recaptchaVer = detectRecaptchaVersion(body);
-  let isRecaptchaVer2 = recaptchaVer === 'ver2';
+  const recaptchaVer = detectRecaptchaVersion(body);
+  const isRecaptchaVer2 = recaptchaVer === 'ver2';
   const callback = options.callback;
   // UDF that has the responsibility of returning control back to cloudscraper
   const handler = options.onCaptcha;
