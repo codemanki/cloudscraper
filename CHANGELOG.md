@@ -1,5 +1,8 @@
 ## Change Log
 
+### 4.6.0 (12/02/2020)
+- Replace &amp; in url with `&`
+
 ### 4.5.0 (03/12/2019)
 - [#293](https://github.com/codemanki/cloudscraper/pull/293) Update code to parse latest CF recaptcha.
 
