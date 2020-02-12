@@ -389,6 +389,8 @@ function onChallenge (options, response, body) {
   if (options.baseUrl !== undefined) {
     options.baseUrl = undefined;
   }
+  // Change required by Cloudflate in Jan-Feb 2020
+  options.uri = options.uri.replace(/&amp;/g, '&');
 
   // Make request with answer after delay.
   timeout -= Date.now() - response.responseStartTime;
