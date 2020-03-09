@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/request-promise": "^4.1.44",
     "@typescript-eslint/eslint-plugin": "^2.3.1",
-    "@typescript-eslint/parser": "^2.3.1",
+    "@typescript-eslint/parser": "^2.23.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "coveralls": "^3.0.3",
