@@ -211,7 +211,7 @@ function onRequestResponse (options, error, response, body) {
 function onCloudflareResponse (options, response, body) {
   const callback = options.callback;
 
-  if (body.length < 1) {
+  if (!(response.statusCode >= 200 && response.statusCode < 300) && body.length < 1) {
     // This is a 4xx-5xx Cloudflare response with an empty body.
     return callback(new CloudflareError(response.statusCode, options, response));
   }
