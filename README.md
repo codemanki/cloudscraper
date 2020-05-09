@@ -1,3 +1,7 @@
+# 🛑 THIS LIBRARY IS NO LONGER SUPPORTED AND IS DEPRECATED 🛑
+
+
+
 cloudscraper
 ============
 
